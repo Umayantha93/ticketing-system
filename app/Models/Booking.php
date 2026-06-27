@@ -1,0 +1,27 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Booking extends Model
+{
+    protected $fillable = [
+        'user_id', 'trip_id', 'ticket_reference', 'ticket_count', 'total_price', 'status', 'payment_method', 'payment_status'
+    ];
+
+    public function passenger()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function trip()
+    {
+        return $this->belongsTo(Trip::class);
+    }
+
+    public function seats()
+    {
+        return $this->belongsToMany(TripSeat::class, 'booking_seat');
+    }
+}
