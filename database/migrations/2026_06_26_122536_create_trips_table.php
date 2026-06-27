@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('trips', function (Blueprint $table) {
             $table->id();
-            $table->foreign('schedule_id')->constrained()->onDelete('cascade');
+            $table->foreignId('schedule_id')->constrained()->onDelete('cascade');
             $table->date('departure_date');
             $table->enum('status', ['scheduled', 'delayed', 'completed', 'cancelled'])->default('scheduled');
             $table->timestamps();
