@@ -17,7 +17,7 @@ class BusController extends Controller
     public function store(Request $request)
     {
         $validatedData = $request->validate([
-            'bus_number' => 'required|string|unique:buses,bus_number',
+            'bus_number_plate' => 'required|string|unique:buses,bus_number_plate',
             'model' => 'required|string',
             'total_seats' => 'required|integer|min:1',
             'layout_type' => 'required|in:2x2,2x1',

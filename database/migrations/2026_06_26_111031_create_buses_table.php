@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('bus_number_plate')->unique();
             $table->string('model');
             $table->integer('total_seats');
+            $table->enum('layout_type', ['2x2', '2x1']);
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
         });
