@@ -8,6 +8,7 @@ use App\Http\Controllers\BookingController;
 use App\Http\Controllers\BusController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\OwnerController;
+use App\Http\Controllers\TicketController;
 
 
 // Public Endpoints
@@ -19,6 +20,10 @@ Route::get('/trips/{id}', [TripController::class, 'show']);
 // Authenticated Routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    // Ticket routes (accessible by booking owner or admin)
+    Route::get('/tickets/{bookingId}', [TicketController::class, 'getTicket']);
+    Route::post('/tickets/{bookingId}/resend', [TicketController::class, 'resend']);
 
     // Passenger only endpoints
     Route::middleware('role:passenger')->group(function () {

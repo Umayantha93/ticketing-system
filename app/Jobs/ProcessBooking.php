@@ -8,9 +8,11 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use App\Models\Booking;
 use Illuminate\Support\Str;
 use App\Models\TripSeat;
+use App\Mail\BookingConfirmation;
 
 class ProcessBooking implements ShouldQueue
 {
@@ -33,7 +35,9 @@ class ProcessBooking implements ShouldQueue
      */
     public function handle(): void
     {
-        DB::transaction(function () {
+        $booking = null;
+
+        DB::transaction(function () use (&$booking) {
 
             $seats = TripSeat::whereIn('id', $this->seatIds)
                     ->where('trip_id', $this->tripId)
@@ -49,9 +53,10 @@ class ProcessBooking implements ShouldQueue
             $booking = Booking::create([
                 'user_id' => $this->userId,
                 'trip_id' => $this->tripId,
-                'ticket_reference' => uniqid('ticket_' . strtoupper(Str::random(8))),
+                'ticket_reference' => 'TKT-' . strtoupper(Str::random(8)),
                 'ticket_count' => count($this->seatIds),
                 'total_price' => $this->totalPrice,
+                'status' => 'confirmed',
                 'payment_status' => 'paid',
             ]);
 
@@ -60,5 +65,11 @@ class ProcessBooking implements ShouldQueue
                 $booking->seats()->attach($seat->id);
             }
         });
+
+        // Send email confirmation with ticket
+        if ($booking) {
+            $booking->load(['trip.schedule.bus', 'passenger', 'seats']);
+            Mail::to($booking->passenger->email)->send(new BookingConfirmation($booking));
+        }
     }
 }

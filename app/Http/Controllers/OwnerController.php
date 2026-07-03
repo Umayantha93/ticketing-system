@@ -59,7 +59,7 @@ class OwnerController extends Controller
     {
         $user = auth()->user();
         $busIds = Bus::where('user_id', $user->id)->pluck('id');
-        
+
         // Filter by bus_id if provided
         $busIdFilter = $request->query('bus_id');
         if ($busIdFilter) {
@@ -69,7 +69,7 @@ class OwnerController extends Controller
             }
             $busIds = collect([$busIdFilter]);
         }
-        
+
         $tripIds = Trip::whereHas('schedule', fn($q) => $q->whereIn('bus_id', $busIds))->pluck('id');
 
         $bookings = Booking::whereIn('trip_id', $tripIds)
