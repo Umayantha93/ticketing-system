@@ -41,7 +41,7 @@ class ProcessBooking implements ShouldQueue
                     ->get();
 
             foreach ($seats as $seat) {
-                if ($seat->status === 'available') {
+                if ($seat->status !== 'available') {
                     throw new \Exception("Seat {$seat->seat_number} is already booked.");
                 }
             }
@@ -50,7 +50,7 @@ class ProcessBooking implements ShouldQueue
                 'user_id' => $this->userId,
                 'trip_id' => $this->tripId,
                 'ticket_reference' => uniqid('ticket_' . strtoupper(Str::random(8))),
-                'seat_count' => count($this->seatIds),
+                'ticket_count' => count($this->seatIds),
                 'total_price' => $this->totalPrice,
                 'payment_status' => 'paid',
             ]);
