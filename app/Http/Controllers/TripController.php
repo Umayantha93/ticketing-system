@@ -38,7 +38,7 @@ class TripController extends Controller
             'origin' => 'required|in:Colombo,Kandy',
             'destination' => 'required|in:Colombo,Kandy',
             'departure_time' => 'required|date_format:H:i',
-            'arrival_time' => 'required|date_format:H:i|after:departure_time',
+            'estimated_arrival_time' => 'required|date_format:H:i|after:departure_time',
         ]);
 
         $schedule = $this->tripRepo->createSchedule($fields);

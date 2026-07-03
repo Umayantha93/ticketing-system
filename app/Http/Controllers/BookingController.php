@@ -21,7 +21,7 @@ class BookingController extends Controller
         $request->validate([
             'trip_id' => 'required|exists:trips,id',
             'seat_ids' => 'required|array',
-            'seat_ids.*' => 'required|exists:seats,id',
+            'seat_ids.*' => 'required|exists:trip_seats,id',
         ]);
 
         $trip = $this->bookingRepo->getTripPriceAndSeats($request->trip_id);
