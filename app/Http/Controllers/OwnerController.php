@@ -17,23 +17,31 @@ class OwnerController extends Controller
 
         $totalTrips    = $tripIds->count();
         $totalBookings = Booking::whereIn('trip_id', $tripIds)->where('payment_status', 'paid')->count();
-        $totalRevenue  = Booking::whereIn('trip_id', $tripIds)->where('payment_status', 'paid')->sum('total_price');
+        $totalRevenue  = (float) Booking::whereIn('trip_id', $tripIds)->where('payment_status', 'paid')->sum('total_price');
 
         $monthlyIncome = Booking::whereIn('trip_id', $tripIds)
             ->where('payment_status', 'paid')
-            ->selectRaw("DATE_FORMAT(created_at, '%b') as month, SUM(total_price) as total, COUNT(*) as bookings")
+            ->selectRaw("DATE_FORMAT(created_at, '%b') as month, CAST(SUM(total_price) AS DECIMAL(10,2)) as total, COUNT(*) as bookings")
             ->where('created_at', '>=', now()->subMonths(6))
             ->groupByRaw("DATE_FORMAT(created_at, '%Y-%m')")
             ->orderByRaw("DATE_FORMAT(created_at, '%Y-%m')")
-            ->get();
+            ->get()
+            ->map(function($item) {
+                $item->total = (float) $item->total;
+                return $item;
+            });
 
         $weeklyIncome = Booking::whereIn('trip_id', $tripIds)
             ->where('payment_status', 'paid')
-            ->selectRaw("CONCAT('Week ', WEEK(created_at) - WEEK(NOW()) + 4) as week, SUM(total_price) as total, COUNT(*) as bookings")
+            ->selectRaw("CONCAT('Week ', WEEK(created_at) - WEEK(NOW()) + 4) as week, CAST(SUM(total_price) AS DECIMAL(10,2)) as total, COUNT(*) as bookings")
             ->where('created_at', '>=', now()->subWeeks(4))
             ->groupByRaw("WEEK(created_at)")
             ->orderByRaw("WEEK(created_at)")
-            ->get();
+            ->get()
+            ->map(function($item) {
+                $item->total = (float) $item->total;
+                return $item;
+            });
 
         $recentBookings = Booking::whereIn('trip_id', $tripIds)
             ->with('passenger', 'trip.schedule.bus', 'seats')

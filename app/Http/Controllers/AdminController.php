@@ -22,23 +22,31 @@ class AdminController extends Controller
         $platformRevenue = $totalBookings * 100;
 
         // Bus owner revenue: (ticket_price + 100 per seat bus owner premium)
-        $busOwnerRevenue = Booking::where('payment_status', 'paid')->sum('total_price');
+        $busOwnerRevenue = (float) Booking::where('payment_status', 'paid')->sum('total_price');
 
         // Monthly breakdown (last 6 months)
         $monthlyIncome = Booking::where('payment_status', 'paid')
-            ->selectRaw("DATE_FORMAT(created_at, '%b') as month, SUM(total_price) as total, COUNT(*) as bookings")
+            ->selectRaw("DATE_FORMAT(created_at, '%b') as month, CAST(SUM(total_price) AS DECIMAL(10,2)) as total, COUNT(*) as bookings")
             ->where('created_at', '>=', now()->subMonths(6))
             ->groupByRaw("DATE_FORMAT(created_at, '%Y-%m')")
             ->orderByRaw("DATE_FORMAT(created_at, '%Y-%m')")
-            ->get();
+            ->get()
+            ->map(function($item) {
+                $item->total = (float) $item->total;
+                return $item;
+            });
 
         // Weekly breakdown (last 4 weeks)
         $weeklyIncome = Booking::where('payment_status', 'paid')
-            ->selectRaw("CONCAT('Week ', WEEK(created_at) - WEEK(NOW()) + 4) as week, SUM(total_price) as total, COUNT(*) as bookings")
+            ->selectRaw("CONCAT('Week ', WEEK(created_at) - WEEK(NOW()) + 4) as week, CAST(SUM(total_price) AS DECIMAL(10,2)) as total, COUNT(*) as bookings")
             ->where('created_at', '>=', now()->subWeeks(4))
             ->groupByRaw("WEEK(created_at)")
             ->orderByRaw("WEEK(created_at)")
-            ->get();
+            ->get()
+            ->map(function($item) {
+                $item->total = (float) $item->total;
+                return $item;
+            });
 
         // Bus owner balance sheets
         $busOwners = User::where('role', 'bus_owner')->with('buses')->get()->map(function ($owner) {
@@ -46,7 +54,7 @@ class AdminController extends Controller
             $tripIds   = Trip::whereHas('schedule', fn($q) => $q->whereIn('bus_id', $busIds))->pluck('id');
             $bookings  = Booking::whereIn('trip_id', $tripIds)->where('payment_status', 'paid');
             $totalBkgs = $bookings->count();
-            $grossRev  = $bookings->sum('total_price');
+            $grossRev  = (float) $bookings->sum('total_price');
             $platformFee = $totalBkgs * 100;
 
             return [
@@ -61,18 +69,26 @@ class AdminController extends Controller
                 'net_earnings'  => $grossRev - $platformFee,
                 'monthly_income' => Booking::whereIn('trip_id', $tripIds)
                     ->where('payment_status', 'paid')
-                    ->selectRaw("DATE_FORMAT(created_at, '%b') as month, SUM(total_price) as total, COUNT(*) as bookings")
+                    ->selectRaw("DATE_FORMAT(created_at, '%b') as month, CAST(SUM(total_price) AS DECIMAL(10,2)) as total, COUNT(*) as bookings")
                     ->where('created_at', '>=', now()->subMonths(6))
                     ->groupByRaw("DATE_FORMAT(created_at, '%Y-%m')")
                     ->orderByRaw("DATE_FORMAT(created_at, '%Y-%m')")
-                    ->get(),
+                    ->get()
+                    ->map(function($item) {
+                        $item->total = (float) $item->total;
+                        return $item;
+                    }),
                 'weekly_income' => Booking::whereIn('trip_id', $tripIds)
                     ->where('payment_status', 'paid')
-                    ->selectRaw("CONCAT('Week ', WEEK(created_at) - WEEK(NOW()) + 4) as week, SUM(total_price) as total, COUNT(*) as bookings")
+                    ->selectRaw("CONCAT('Week ', WEEK(created_at) - WEEK(NOW()) + 4) as week, CAST(SUM(total_price) AS DECIMAL(10,2)) as total, COUNT(*) as bookings")
                     ->where('created_at', '>=', now()->subWeeks(4))
                     ->groupByRaw("WEEK(created_at)")
                     ->orderByRaw("WEEK(created_at)")
-                    ->get(),
+                    ->get()
+                    ->map(function($item) {
+                        $item->total = (float) $item->total;
+                        return $item;
+                    }),
             ];
         });
 
@@ -169,11 +185,44 @@ class AdminController extends Controller
             'total_seats'      => $validated['total_seats'],
             'layout_type'      => $validated['layout_type'],
             'status'           => 'active',
+            'approval_status'  => 'approved',
         ]);
 
         return response()->json([
             'message' => 'Bus registered successfully',
             'bus' => $bus->load('busOwner')
         ], 201);
+    }
+
+    public function approveBus($id)
+    {
+        $bus = Bus::findOrFail($id);
+        $bus->update(['approval_status' => 'approved']);
+        
+        return response()->json([
+            'message' => 'Bus approved successfully',
+            'bus' => $bus->load('busOwner')
+        ]);
+    }
+
+    public function rejectBus($id)
+    {
+        $bus = Bus::findOrFail($id);
+        $bus->update(['approval_status' => 'rejected']);
+        
+        return response()->json([
+            'message' => 'Bus rejected',
+            'bus' => $bus->load('busOwner')
+        ]);
+    }
+
+    public function getPendingBuses()
+    {
+        $buses = Bus::with('busOwner')
+            ->where('approval_status', 'pending')
+            ->latest()
+            ->get();
+        
+        return response()->json($buses);
     }
 }

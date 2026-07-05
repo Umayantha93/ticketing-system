@@ -34,6 +34,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Bus Owner only endpoints
     Route::middleware('role:bus_owner')->group(function () {
         Route::post('/buses', [BusController::class, 'store']);
+        Route::put('/buses/{id}', [BusController::class, 'update']);
         Route::post('/schedules', [TripController::class, 'createSchedule']);
         Route::get('/owner/stats', [OwnerController::class, 'stats']);
         Route::get('/owner/bookings', [OwnerController::class, 'bookings']);
@@ -46,6 +47,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/bookings', [AdminController::class, 'allBookings']);
         Route::get('/users', [AdminController::class, 'allUsers']);
         Route::get('/buses', [AdminController::class, 'allBuses']);
+        Route::get('/buses/pending', [AdminController::class, 'getPendingBuses']);
+        Route::post('/buses/{id}/approve', [AdminController::class, 'approveBus']);
+        Route::post('/buses/{id}/reject', [AdminController::class, 'rejectBus']);
         Route::get('/bus-owners', [AdminController::class, 'getAllBusOwners']);
         Route::post('/register-bus-owner', [AdminController::class, 'registerBusOwner']);
         Route::post('/register-bus', [AdminController::class, 'registerBus']);
