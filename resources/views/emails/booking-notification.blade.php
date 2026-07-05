@@ -70,7 +70,7 @@
         <h1>🚌 New Booking Alert</h1>
         <p>Trip Departure within 24 hours</p>
     </div>
-    
+
     <div class="content">
         <div class="alert">
             <strong>⚠️ Action Required:</strong> A new booking has been made for a trip departing within the next 24 hours. Please ensure your bus is ready.
