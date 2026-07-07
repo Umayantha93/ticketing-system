@@ -13,4 +13,16 @@ class BusRepository implements BusRepositoryInterface
         // For example, you can use Eloquent's create method:
         return Bus::create($data);
     }
+
+    public function findById(int $id)
+    {
+        return Bus::findOrFail($id);
+    }
+
+    public function update(int $id, array $data)
+    {
+        $bus = Bus::findOrFail($id);
+        $bus->update($data);
+        return $bus->fresh();
+    }
 }
