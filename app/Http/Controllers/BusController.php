@@ -50,10 +50,22 @@ class BusController extends Controller
             'status' => 'sometimes|in:active,inactive',
         ]);
 
+        if (isset($validatedData['status']) && $validatedData['status'] === 'active') {
+            return response()->json([
+                'message' => 'Bus owners cannot activate buses. Admin approval is required.'
+            ], 422);
+        }
+
         // If bus details are being changed (not just status), set to pending approval
         if (isset($validatedData['bus_number_plate']) || isset($validatedData['model']) ||
             isset($validatedData['total_seats']) || isset($validatedData['layout_type'])) {
             $validatedData['approval_status'] = 'pending';
+            $validatedData['status'] = 'inactive';
+        }
+
+        // Until approved by admin, owner-managed buses must remain inactive.
+        if ($bus->approval_status !== 'approved') {
+            $validatedData['status'] = 'inactive';
         }
 
         $bus = $this->busRepo->update($id, $validatedData);
