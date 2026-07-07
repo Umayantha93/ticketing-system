@@ -25,7 +25,7 @@ class BusController extends Controller
 
         $busData = array_merge($validatedData, [
             'user_id' => auth()->id(),
-            'status' => 'active',
+            'status' => 'inactive', // Inactive until admin approves
             'approval_status' => 'pending', // Requires admin approval
             ]);
 
@@ -36,7 +36,7 @@ class BusController extends Controller
     public function update(Request $request, $id)
     {
         $bus = $this->busRepo->findById($id);
-        
+
         // Verify ownership
         if ($bus->user_id !== auth()->id()) {
             return response()->json(['message' => 'Unauthorized'], 403);
@@ -51,7 +51,7 @@ class BusController extends Controller
         ]);
 
         // If bus details are being changed (not just status), set to pending approval
-        if (isset($validatedData['bus_number_plate']) || isset($validatedData['model']) || 
+        if (isset($validatedData['bus_number_plate']) || isset($validatedData['model']) ||
             isset($validatedData['total_seats']) || isset($validatedData['layout_type'])) {
             $validatedData['approval_status'] = 'pending';
         }

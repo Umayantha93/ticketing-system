@@ -12,7 +12,7 @@ class TicketController extends Controller
         $user = auth()->user();
         $query = Booking::with(['trip.schedule.bus', 'seats', 'passenger'])
             ->where('id', $bookingId);
-        
+
         // Allow access if user is the passenger OR if user is the bus owner
         if ($user->role === 'passenger') {
             $query->where('user_id', $user->id);
@@ -22,7 +22,7 @@ class TicketController extends Controller
                 $q->where('user_id', $user->id);
             });
         }
-        
+
         $booking = $query->firstOrFail();
 
         $ticketData = [

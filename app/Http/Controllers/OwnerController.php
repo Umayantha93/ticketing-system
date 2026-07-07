@@ -21,25 +21,29 @@ class OwnerController extends Controller
 
         $monthlyIncome = Booking::whereIn('trip_id', $tripIds)
             ->where('payment_status', 'paid')
-            ->selectRaw("DATE_FORMAT(created_at, '%b') as month, CAST(SUM(total_price) AS DECIMAL(10,2)) as total, COUNT(*) as bookings")
+            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as period_key, CAST(SUM(total_price) AS DECIMAL(10,2)) as total, COUNT(*) as bookings")
             ->where('created_at', '>=', now()->subMonths(6))
             ->groupByRaw("DATE_FORMAT(created_at, '%Y-%m')")
             ->orderByRaw("DATE_FORMAT(created_at, '%Y-%m')")
             ->get()
             ->map(function($item) {
+                $item->month = \Carbon\Carbon::createFromFormat('Y-m', $item->period_key)->format('M');
                 $item->total = (float) $item->total;
+                unset($item->period_key);
                 return $item;
             });
 
         $weeklyIncome = Booking::whereIn('trip_id', $tripIds)
             ->where('payment_status', 'paid')
-            ->selectRaw("CONCAT('Week ', WEEK(created_at) - WEEK(NOW()) + 4) as week, CAST(SUM(total_price) AS DECIMAL(10,2)) as total, COUNT(*) as bookings")
+            ->selectRaw("WEEK(created_at, 1) as week_num, CAST(SUM(total_price) AS DECIMAL(10,2)) as total, COUNT(*) as bookings")
             ->where('created_at', '>=', now()->subWeeks(4))
-            ->groupByRaw("WEEK(created_at)")
-            ->orderByRaw("WEEK(created_at)")
+            ->groupByRaw("WEEK(created_at, 1)")
+            ->orderByRaw("WEEK(created_at, 1)")
             ->get()
-            ->map(function($item) {
+            ->map(function($item, $index) {
+                $item->week = 'Week ' . ($index + 1);
                 $item->total = (float) $item->total;
+                unset($item->week_num);
                 return $item;
             });
 
@@ -67,7 +71,7 @@ class OwnerController extends Controller
     {
         $user = auth()->user();
         $busIds = Bus::where('user_id', $user->id)->pluck('id');
-        
+
         // Filter by bus_id if provided
         $busIdFilter = $request->query('bus_id');
         if ($busIdFilter) {
@@ -77,7 +81,7 @@ class OwnerController extends Controller
             }
             $busIds = collect([$busIdFilter]);
         }
-        
+
         $tripIds = Trip::whereHas('schedule', fn($q) => $q->whereIn('bus_id', $busIds))->pluck('id');
 
         $bookings = Booking::whereIn('trip_id', $tripIds)
