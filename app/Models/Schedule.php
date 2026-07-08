@@ -7,7 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 class Schedule extends Model
 {
     protected $fillable = [
-        'bus_id', 'departure_time', 'estimated_arrival_time', 'origin', 'destination', 'price'
+        'bus_id',
+        'day_of_week',
+        'departure_time',
+        'estimated_arrival_time',
+        'origin',
+        'destination',
+        'price',
     ];
 
     public function bus()

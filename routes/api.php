@@ -14,6 +14,7 @@ use App\Http\Controllers\TicketController;
 // Public Endpoints
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/auth/google', [AuthController::class, 'googleSignIn']);
 Route::get('/trips', [TripController::class, 'index']);
 Route::get('/trips/{id}', [TripController::class, 'show']);
 
@@ -36,6 +37,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/buses', [BusController::class, 'store']);
         Route::put('/buses/{id}', [BusController::class, 'update']);
         Route::post('/schedules', [TripController::class, 'createSchedule']);
+        Route::get('/owner/schedules', [OwnerController::class, 'schedules']);
         Route::get('/owner/stats', [OwnerController::class, 'stats']);
         Route::get('/owner/bookings', [OwnerController::class, 'bookings']);
         Route::get('/owner/buses', [OwnerController::class, 'buses']);

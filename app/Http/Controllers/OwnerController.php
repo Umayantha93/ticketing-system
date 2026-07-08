@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Bus;
 use App\Models\Trip;
 use App\Models\Booking;
+use App\Models\Schedule;
 
 class OwnerController extends Controller
 {
@@ -96,5 +97,27 @@ class OwnerController extends Controller
     {
         $buses = Bus::where('user_id', auth()->id())->get();
         return response()->json($buses);
+    }
+
+    public function schedules(Request $request)
+    {
+        $user = auth()->user();
+        $busIds = Bus::where('user_id', $user->id)->pluck('id');
+        $requestedBusId = $request->query('bus_id');
+
+        if ($requestedBusId && !$busIds->contains((int) $requestedBusId)) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $query = Schedule::with('bus')
+            ->whereIn('bus_id', $busIds)
+            ->orderByRaw("FIELD(day_of_week, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')")
+            ->orderBy('departure_time');
+
+        if ($requestedBusId) {
+            $query->where('bus_id', $requestedBusId);
+        }
+
+        return response()->json($query->get());
     }
 }
