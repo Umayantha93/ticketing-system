@@ -179,7 +179,7 @@ class BusBookingSeeder extends Seeder
             $bus = $schedule->bus;
             $seatsPerRow = $bus->layout_type === '2x1' ? 3 : 4;
             $numRows = (int) ceil($bus->total_seats / $seatsPerRow);
-            $seatRows = range('A', chr(ord('A') + $numRows - 1));
+            $seatRows = $this->seatRows($numRows);
             $seatCounter = 0;
 
             foreach ($seatRows as $row) {
@@ -251,5 +251,28 @@ class BusBookingSeeder extends Seeder
         }
 
         return $today->next($dayOfWeek);
+    }
+
+    private function seatRows(int $rowCount): array
+    {
+        $rows = [];
+
+        for ($index = 0; $index < $rowCount; $index++) {
+            $rows[] = $this->seatRowLabel($index);
+        }
+
+        return $rows;
+    }
+
+    private function seatRowLabel(int $index): string
+    {
+        $label = '';
+
+        do {
+            $label = chr(65 + ($index % 26)) . $label;
+            $index = intdiv($index, 26) - 1;
+        } while ($index >= 0);
+
+        return $label;
     }
 }

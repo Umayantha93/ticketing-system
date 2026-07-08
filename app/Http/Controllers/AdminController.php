@@ -40,15 +40,15 @@ class AdminController extends Controller
 
         // Weekly breakdown (last 4 weeks)
         $weeklyIncome = Booking::where('payment_status', 'paid')
-            ->selectRaw("WEEK(created_at, 1) as week_num, CAST(SUM(total_price) AS DECIMAL(10,2)) as total, COUNT(*) as bookings")
+            ->selectRaw("DATE_FORMAT(created_at, '%x-%v') as week_key, CAST(SUM(total_price) AS DECIMAL(10,2)) as total, COUNT(*) as bookings")
             ->where('created_at', '>=', now()->subWeeks(4))
-            ->groupByRaw("WEEK(created_at, 1)")
-            ->orderByRaw("WEEK(created_at, 1)")
+            ->groupByRaw("DATE_FORMAT(created_at, '%x-%v')")
+            ->orderByRaw("DATE_FORMAT(created_at, '%x-%v')")
             ->get()
             ->map(function($item, $index) {
                 $item->week = 'Week ' . ($index + 1);
                 $item->total = (float) $item->total;
-                unset($item->week_num);
+                unset($item->week_key);
                 return $item;
             });
 
@@ -123,15 +123,15 @@ class AdminController extends Controller
                     }),
                 'weekly_income' => Booking::whereIn('trip_id', $tripIds)
                     ->where('payment_status', 'paid')
-                    ->selectRaw("WEEK(created_at, 1) as week_num, CAST(SUM(total_price) AS DECIMAL(10,2)) as total, COUNT(*) as bookings")
+                    ->selectRaw("DATE_FORMAT(created_at, '%x-%v') as week_key, CAST(SUM(total_price) AS DECIMAL(10,2)) as total, COUNT(*) as bookings")
                     ->where('created_at', '>=', now()->subWeeks(4))
-                    ->groupByRaw("WEEK(created_at, 1)")
-                    ->orderByRaw("WEEK(created_at, 1)")
+                    ->groupByRaw("DATE_FORMAT(created_at, '%x-%v')")
+                    ->orderByRaw("DATE_FORMAT(created_at, '%x-%v')")
                     ->get()
                     ->map(function($item, $index) {
                         $item->week = 'Week ' . ($index + 1);
                         $item->total = (float) $item->total;
-                        unset($item->week_num);
+                        unset($item->week_key);
                         return $item;
                     }),
             ];
