@@ -82,6 +82,10 @@ class TripRepository implements TripRepositoryInterface
             return;
         }
 
+        if ($bus->total_seats < 1) {
+            return;
+        }
+
         $seatsPerRow = $bus->layout_type === '2x1' ? 3 : 4;
         $rowCount = (int) ceil($bus->total_seats / $seatsPerRow);
         $seatRows = range('A', chr(ord('A') + $rowCount - 1));

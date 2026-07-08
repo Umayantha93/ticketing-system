@@ -74,7 +74,11 @@ class AuthController extends Controller
         $payload = $googleResponse->json();
         $clientId = config('services.google.client_id');
 
-        if ($clientId && ($payload['aud'] ?? null) !== $clientId) {
+        if (!$clientId) {
+            return response()->json(['message' => 'Google sign in is not configured'], 500);
+        }
+
+        if (($payload['aud'] ?? null) !== $clientId) {
             return response()->json(['message' => 'Google token audience mismatch'], 422);
         }
 
