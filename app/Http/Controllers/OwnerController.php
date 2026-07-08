@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Bus;
 use App\Models\Trip;
 use App\Models\Booking;
+use App\Models\Schedule;
 
 class OwnerController extends Controller
 {
@@ -17,23 +18,35 @@ class OwnerController extends Controller
 
         $totalTrips    = $tripIds->count();
         $totalBookings = Booking::whereIn('trip_id', $tripIds)->where('payment_status', 'paid')->count();
-        $totalRevenue  = Booking::whereIn('trip_id', $tripIds)->where('payment_status', 'paid')->sum('total_price');
+        $totalRevenue  = (float) Booking::whereIn('trip_id', $tripIds)->where('payment_status', 'paid')->sum('total_price');
 
         $monthlyIncome = Booking::whereIn('trip_id', $tripIds)
             ->where('payment_status', 'paid')
-            ->selectRaw("DATE_FORMAT(created_at, '%b') as month, SUM(total_price) as total, COUNT(*) as bookings")
+            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as period_key, CAST(SUM(total_price) AS DECIMAL(10,2)) as total, COUNT(*) as bookings")
             ->where('created_at', '>=', now()->subMonths(6))
             ->groupByRaw("DATE_FORMAT(created_at, '%Y-%m')")
             ->orderByRaw("DATE_FORMAT(created_at, '%Y-%m')")
-            ->get();
+            ->get()
+            ->map(function($item) {
+                $item->month = \Carbon\Carbon::createFromFormat('Y-m', $item->period_key)->format('M');
+                $item->total = (float) $item->total;
+                unset($item->period_key);
+                return $item;
+            });
 
         $weeklyIncome = Booking::whereIn('trip_id', $tripIds)
             ->where('payment_status', 'paid')
-            ->selectRaw("CONCAT('Week ', WEEK(created_at) - WEEK(NOW()) + 4) as week, SUM(total_price) as total, COUNT(*) as bookings")
+            ->selectRaw("WEEK(created_at, 1) as week_num, CAST(SUM(total_price) AS DECIMAL(10,2)) as total, COUNT(*) as bookings")
             ->where('created_at', '>=', now()->subWeeks(4))
-            ->groupByRaw("WEEK(created_at)")
-            ->orderByRaw("WEEK(created_at)")
-            ->get();
+            ->groupByRaw("WEEK(created_at, 1)")
+            ->orderByRaw("WEEK(created_at, 1)")
+            ->get()
+            ->map(function($item, $index) {
+                $item->week = 'Week ' . ($index + 1);
+                $item->total = (float) $item->total;
+                unset($item->week_num);
+                return $item;
+            });
 
         $recentBookings = Booking::whereIn('trip_id', $tripIds)
             ->with('passenger', 'trip.schedule.bus', 'seats')
@@ -84,5 +97,27 @@ class OwnerController extends Controller
     {
         $buses = Bus::where('user_id', auth()->id())->get();
         return response()->json($buses);
+    }
+
+    public function schedules(Request $request)
+    {
+        $user = auth()->user();
+        $busIds = Bus::where('user_id', $user->id)->pluck('id');
+        $requestedBusId = $request->query('bus_id');
+
+        if ($requestedBusId && !$busIds->contains((int) $requestedBusId)) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $query = Schedule::with('bus')
+            ->whereIn('bus_id', $busIds)
+            ->orderByRaw("FIELD(day_of_week, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')")
+            ->orderBy('departure_time');
+
+        if ($requestedBusId) {
+            $query->where('bus_id', $requestedBusId);
+        }
+
+        return response()->json($query->get());
     }
 }

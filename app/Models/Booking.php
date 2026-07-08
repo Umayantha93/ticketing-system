@@ -7,7 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 class Booking extends Model
 {
     protected $fillable = [
-        'user_id', 'trip_id', 'ticket_reference', 'ticket_count', 'total_price', 'status', 'payment_method', 'payment_status'
+        'user_id', 'trip_id', 'ticket_reference', 'ticket_count', 'total_price', 'onboarding_location', 'status', 'payment_method', 'payment_status'
+    ];
+
+    protected $casts = [
+        'total_price' => 'decimal:2',
+        'ticket_count' => 'integer',
     ];
 
     public function passenger()

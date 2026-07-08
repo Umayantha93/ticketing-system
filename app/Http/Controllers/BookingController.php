@@ -22,6 +22,7 @@ class BookingController extends Controller
             'trip_id' => 'required|exists:trips,id',
             'seat_ids' => 'required|array',
             'seat_ids.*' => 'required|exists:trip_seats,id',
+            'onboarding_location' => 'required|string|max:255',
         ]);
 
         $trip = $this->bookingRepo->getTripPriceAndSeats($request->trip_id);
@@ -31,7 +32,8 @@ class BookingController extends Controller
             auth()->id(),
             $request->trip_id,
             $request->seat_ids,
-            $totalPrice
+            $totalPrice,
+            $request->onboarding_location
         );
 
         return response()->json([

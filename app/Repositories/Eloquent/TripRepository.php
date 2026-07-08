@@ -2,21 +2,49 @@
 
 namespace App\Repositories\Eloquent;
 
+use App\Models\Bus;
 use App\Models\Trip;
 use App\Models\Schedule;
+use App\Models\TripSeat;
 use App\Repositories\Contracts\TripRepositoryInterface;
+use Carbon\Carbon;
+use Illuminate\Support\Collection;
 
 class TripRepository implements TripRepositoryInterface
 {
     public function searchTrips($origin, $destination, $date)
     {
-        // Implement the logic to search for trips based on origin, destination, and date
-        // For example, you can use Eloquent's query builder to filter trips
+        $targetDate = Carbon::parse($date)->format('Y-m-d');
+        $dayOfWeek = Carbon::parse($targetDate)->format('l');
 
-        return Trip::where('departure_date', $date)
-            ->whereHas('schedule', function ($query) use ($origin, $destination) {
-                $query->where('origin', $origin)->where('destination', $destination);
-            })->with('schedule.bus')->get();
+        $schedules = Schedule::with('bus')
+            ->where('origin', $origin)
+            ->where('destination', $destination)
+            ->where('day_of_week', $dayOfWeek)
+            ->get();
+
+        $trips = new Collection();
+
+        foreach ($schedules as $schedule) {
+            $trip = Trip::firstOrCreate(
+                [
+                    'schedule_id' => $schedule->id,
+                    'departure_date' => $targetDate,
+                ],
+                [
+                    'status' => 'scheduled',
+                ]
+            );
+
+            $this->ensureTripSeats($trip->id, $schedule->bus);
+
+            $trips->push($trip);
+        }
+
+        return Trip::with('schedule.bus', 'seats')
+            ->whereIn('id', $trips->pluck('id'))
+            ->orderBy('id')
+            ->get();
     }
 
     public function getTripWithSeats($id)
@@ -29,8 +57,44 @@ class TripRepository implements TripRepositoryInterface
 
     public function createSchedule(array $data)
     {
-        // Implement the logic to create a new schedule record in the database
-        // For example, you can use Eloquent's create method:
-        return Schedule::create($data);
+        return Schedule::updateOrCreate(
+            [
+                'bus_id' => $data['bus_id'],
+                'origin' => $data['origin'],
+                'destination' => $data['destination'],
+                'day_of_week' => $data['day_of_week'],
+                'departure_time' => $data['departure_time'],
+            ],
+            [
+                'estimated_arrival_time' => $data['estimated_arrival_time'],
+                'price' => $data['price'],
+            ]
+        );
+    }
+
+    private function ensureTripSeats(int $tripId, ?Bus $bus): void
+    {
+        if (!$bus) {
+            return;
+        }
+
+        if (TripSeat::where('trip_id', $tripId)->exists()) {
+            return;
+        }
+
+        $seatRows = ['A', 'B', 'C'];
+        $seatLimit = min($bus->total_seats, count($seatRows) * 4);
+
+        $seatNumber = 0;
+        foreach ($seatRows as $row) {
+            for ($number = 1; $number <= 4 && $seatNumber < $seatLimit; $number++) {
+                TripSeat::create([
+                    'trip_id' => $tripId,
+                    'seat_number' => $row . $number,
+                    'status' => 'available',
+                ]);
+                $seatNumber++;
+            }
+        }
     }
 }
