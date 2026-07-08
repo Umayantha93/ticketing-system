@@ -82,7 +82,9 @@ class AuthController extends Controller
             return response()->json(['message' => 'Google token audience mismatch'], 422);
         }
 
-        if (($payload['email_verified'] ?? 'false') !== 'true') {
+        $emailVerified = filter_var($payload['email_verified'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+        if (!$emailVerified) {
             return response()->json(['message' => 'Google email is not verified'], 422);
         }
 

@@ -82,7 +82,7 @@ class TripRepository implements TripRepositoryInterface
             return;
         }
 
-        if ($bus->total_seats < 1) {
+        if ($bus->total_seats <= 0) {
             return;
         }
 

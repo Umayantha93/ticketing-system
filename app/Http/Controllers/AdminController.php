@@ -32,7 +32,7 @@ class AdminController extends Controller
             ->orderByRaw("DATE_FORMAT(created_at, '%Y-%m')")
             ->get()
             ->map(function($item) {
-                $item->month = \Carbon\Carbon::createFromFormat('Y-m', $item->period_key)->format('M');
+                $item->month = $this->formatPeriodMonth($item->period_key);
                 $item->total = (float) $item->total;
                 unset($item->period_key);
                 return $item;
@@ -116,7 +116,7 @@ class AdminController extends Controller
                     ->orderByRaw("DATE_FORMAT(created_at, '%Y-%m')")
                     ->get()
                     ->map(function($item) {
-                        $item->month = \Carbon\Carbon::createFromFormat('Y-m', $item->period_key)->format('M');
+                        $item->month = $this->formatPeriodMonth($item->period_key);
                         $item->total = (float) $item->total;
                         unset($item->period_key);
                         return $item;
@@ -277,5 +277,16 @@ class AdminController extends Controller
             ->get();
 
         return response()->json($buses);
+    }
+
+    private function formatPeriodMonth(?string $periodKey): string
+    {
+        if (!$periodKey) {
+            return '';
+        }
+
+        $month = \Carbon\Carbon::createFromFormat('Y-m', $periodKey);
+
+        return $month ? $month->format('M') : '';
     }
 }
