@@ -82,12 +82,13 @@ class TripRepository implements TripRepositoryInterface
             return;
         }
 
-        $seatRows = ['A', 'B', 'C'];
-        $seatLimit = min($bus->total_seats, count($seatRows) * 4);
-
+        $seatsPerRow = $bus->layout_type === '2x1' ? 3 : 4;
+        $rowCount = (int) ceil($bus->total_seats / $seatsPerRow);
+        $seatRows = range('A', chr(ord('A') + $rowCount - 1));
         $seatNumber = 0;
+
         foreach ($seatRows as $row) {
-            for ($number = 1; $number <= 4 && $seatNumber < $seatLimit; $number++) {
+            for ($number = 1; $number <= $seatsPerRow && $seatNumber < $bus->total_seats; $number++) {
                 TripSeat::create([
                     'trip_id' => $tripId,
                     'seat_number' => $row . $number,

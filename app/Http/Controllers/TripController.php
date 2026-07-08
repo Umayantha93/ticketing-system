@@ -51,7 +51,7 @@ class TripController extends Controller
 
         $bus = Bus::findOrFail($fields['bus_id']);
         if ($bus->user_id !== auth()->id()) {
-            return response()->json(['message' => 'Unauthorized for selected bus'], 403);
+            return response()->json(['message' => 'You do not have permission to create schedules for this bus'], 403);
         }
 
         $schedule = $this->tripRepo->createSchedule($fields);

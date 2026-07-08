@@ -53,7 +53,7 @@ class BusController extends Controller
         if (isset($validatedData['status']) && $validatedData['status'] === 'active') {
             return response()->json([
                 'message' => 'Bus owners cannot activate buses. Admin approval is required.'
-            ], 422);
+            ], 403);
         }
 
         // If bus details are being changed (not just status), set to pending approval

@@ -72,7 +72,7 @@ class AuthController extends Controller
         }
 
         $payload = $googleResponse->json();
-        $clientId = env('GOOGLE_CLIENT_ID');
+        $clientId = config('services.google.client_id');
 
         if ($clientId && ($payload['aud'] ?? null) !== $clientId) {
             return response()->json(['message' => 'Google token audience mismatch'], 422);
