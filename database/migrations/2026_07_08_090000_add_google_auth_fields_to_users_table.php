@@ -12,12 +12,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->string('google_id')->nullable()->unique()->after('email');
-        });
+        if (! Schema::hasColumn('users', 'google_id')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->string('google_id')->nullable()->unique()->after('email');
+            });
+        }
 
-        DB::statement('ALTER TABLE users MODIFY phone_number VARCHAR(255) NULL');
-        DB::statement('ALTER TABLE users MODIFY password VARCHAR(255) NULL');
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('phone_number')->nullable()->change();
+            $table->string('password')->nullable()->change();
+        });
     }
 
     /**
@@ -25,14 +29,24 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement("UPDATE users SET phone_number = CONCAT('UNKNOWN-', id) WHERE phone_number IS NULL");
-        DB::statement("UPDATE users SET password = '' WHERE password IS NULL");
-        DB::statement('ALTER TABLE users MODIFY phone_number VARCHAR(255) NOT NULL');
-        DB::statement('ALTER TABLE users MODIFY password VARCHAR(255) NOT NULL');
+        DB::table('users')
+            ->whereNull('phone_number')
+            ->update(['phone_number' => DB::raw("CONCAT('UNKNOWN-', id)")]);
+
+        DB::table('users')
+            ->whereNull('password')
+            ->update(['password' => '']);
 
         Schema::table('users', function (Blueprint $table) {
-            $table->dropUnique('users_google_id_unique');
-            $table->dropColumn('google_id');
+            $table->string('phone_number')->nullable(false)->change();
+            $table->string('password')->nullable(false)->change();
         });
+
+        if (Schema::hasColumn('users', 'google_id')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->dropUnique(['google_id']);
+                $table->dropColumn('google_id');
+            });
+        }
     }
 };
