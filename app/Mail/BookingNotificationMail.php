@@ -15,13 +15,15 @@ class BookingNotificationMail extends Mailable
     use Queueable, SerializesModels;
 
     public $bookingDetails;
+    public $recipientType;
 
     /**
      * Create a new message instance.
      */
-    public function __construct($bookingDetails)
+    public function __construct($bookingDetails, string $recipientType = 'passenger')
     {
         $this->bookingDetails = $bookingDetails;
+        $this->recipientType = $recipientType;
     }
 
     /**
@@ -29,8 +31,12 @@ class BookingNotificationMail extends Mailable
      */
     public function envelope(): Envelope
     {
+        $subject = $this->recipientType === 'owner'
+            ? 'New Booking Alert - Passenger Ticket Issued'
+            : 'Your BookKara Ticket Confirmation';
+
         return new Envelope(
-            subject: 'New Booking Notification - Trip within 24 hours',
+            subject: $subject,
         );
     }
 

@@ -66,15 +66,23 @@
     </style>
 </head>
 <body>
+    @php $isOwner = ($recipientType ?? 'passenger') === 'owner'; @endphp
+
     <div class="header">
-        <h1>🚌 New Booking Alert</h1>
-        <p>Trip Departure within 24 hours</p>
+        <h1>{{ $isOwner ? '🚌 New Booking Alert' : '🎫 Booking Confirmed' }}</h1>
+        <p>{{ $isOwner ? 'A passenger completed a booking for your bus' : 'Your BookKara ticket is ready' }}</p>
     </div>
 
     <div class="content">
-        <div class="alert">
-            <strong>⚠️ Action Required:</strong> A new booking has been made for a trip departing within the next 24 hours. Please ensure your bus is ready.
-        </div>
+        @if($isOwner)
+            <div class="alert">
+                <strong>⚠️ Action Required:</strong> A new booking was completed. Please prepare your bus and boarding point for this trip.
+            </div>
+        @else
+            <div class="alert" style="background:#dcfce7;border-color:#22c55e;">
+                <strong>✅ Success:</strong> Your booking has been confirmed. Please keep your ticket reference for travel.
+            </div>
+        @endif
 
         <div class="info-box">
             <h3>Bus Information</h3>
@@ -106,6 +114,12 @@
 
         <div class="info-box">
             <h3>Passenger Information</h3>
+            @if($bookingDetails['passenger_name'] ?? null)
+            <div class="info-row">
+                <span class="label">Passenger Name:</span>
+                <span class="value">{{ $bookingDetails['passenger_name'] }}</span>
+            </div>
+            @endif
             <div class="info-row">
                 <span class="label">Onboarding Location:</span>
                 <span class="value">{{ $bookingDetails['onboarding_location'] }}</span>
@@ -122,11 +136,21 @@
                 <span class="label">Booking Reference:</span>
                 <span class="value">{{ $bookingDetails['ticket_reference'] }}</span>
             </div>
+            <div class="info-row">
+                <span class="label">Total Price:</span>
+                <span class="value">LKR {{ number_format((float) ($bookingDetails['total_price'] ?? 0), 2) }}</span>
+            </div>
         </div>
 
-        <p style="margin-top: 20px;">
-            <strong>Important:</strong> Please be at the onboarding location <strong>{{ $bookingDetails['onboarding_location'] }}</strong> on time to pick up the passengers.
-        </p>
+        @if($isOwner)
+            <p style="margin-top: 20px;">
+                <strong>Important:</strong> Please be at <strong>{{ $bookingDetails['onboarding_location'] }}</strong> on time to pick up passengers.
+            </p>
+        @else
+            <p style="margin-top: 20px;">
+                <strong>Travel Note:</strong> Reach <strong>{{ $bookingDetails['onboarding_location'] }}</strong> at least 15 minutes before departure.
+            </p>
+        @endif
     </div>
 
     <div class="footer">

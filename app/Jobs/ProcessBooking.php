@@ -11,10 +11,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use App\Models\Booking;
 use App\Models\Trip;
+use App\Models\User;
 use Illuminate\Support\Str;
 use App\Models\TripSeat;
 use App\Mail\BookingNotificationMail;
-use Carbon\Carbon;
 
 class ProcessBooking implements ShouldQueue
 {
@@ -40,7 +40,7 @@ class ProcessBooking implements ShouldQueue
      */
     public function handle(): void
     {
-        DB::transaction(function () {
+        $mailPayload = DB::transaction(function () {
 
             $seats = TripSeat::whereIn('id', $this->seatIds)
                     ->where('trip_id', $this->tripId)
@@ -68,38 +68,49 @@ class ProcessBooking implements ShouldQueue
                 $booking->seats()->attach($seat->id);
             }
 
-            // Check if trip is within 24 hours and send email to bus owner
             $trip = Trip::with('schedule.bus.busOwner')->find($this->tripId);
+            $passenger = User::find($this->userId);
+            $seatNumbers = $seats->pluck('seat_number')->toArray();
 
-            if ($trip && $trip->schedule && $trip->schedule->bus) {
-                $departureDateTime = Carbon::parse($trip->departure_date . ' ' . $trip->schedule->departure_time);
-                $now = Carbon::now();
-                $hoursUntilDeparture = $now->diffInHours($departureDateTime, false);
-
-                // If trip is within 24 hours (and in the future)
-                if ($hoursUntilDeparture <= 24 && $hoursUntilDeparture > 0) {
-                    $busOwner = $trip->schedule->bus->busOwner;
-
-                    if ($busOwner && $busOwner->email) {
-                        $seatNumbers = $seats->pluck('seat_number')->toArray();
-
-                        $bookingDetails = [
-                            'bus_number_plate' => $trip->schedule->bus->bus_number_plate,
-                            'bus_model' => $trip->schedule->bus->model,
-                            'origin' => $trip->schedule->origin,
-                            'destination' => $trip->schedule->destination,
-                            'departure_date' => $trip->departure_date,
-                            'departure_time' => $trip->schedule->departure_time,
-                            'onboarding_location' => $this->onboardingLocation ?? 'Not specified',
-                            'seat_numbers' => $seatNumbers,
-                            'ticket_count' => count($this->seatIds),
-                            'ticket_reference' => $booking->ticket_reference,
-                        ];
-
-                        Mail::to($busOwner->email)->send(new BookingNotificationMail($bookingDetails));
-                    }
-                }
-            }
+            return [
+                'trip' => $trip,
+                'passenger' => $passenger,
+                'seat_numbers' => $seatNumbers,
+                'booking' => $booking,
+            ];
         });
+
+        $trip = $mailPayload['trip'] ?? null;
+        $booking = $mailPayload['booking'] ?? null;
+        $seatNumbers = $mailPayload['seat_numbers'] ?? [];
+        $passenger = $mailPayload['passenger'] ?? null;
+
+        if (!$trip || !$trip->schedule || !$trip->schedule->bus || !$booking) {
+            return;
+        }
+
+        $bookingDetails = [
+            'bus_number_plate' => $trip->schedule->bus->bus_number_plate,
+            'bus_model' => $trip->schedule->bus->model,
+            'origin' => $trip->schedule->origin,
+            'destination' => $trip->schedule->destination,
+            'departure_date' => $trip->departure_date,
+            'departure_time' => $trip->schedule->departure_time,
+            'onboarding_location' => $this->onboardingLocation ?? 'Not specified',
+            'seat_numbers' => $seatNumbers,
+            'ticket_count' => count($this->seatIds),
+            'ticket_reference' => $booking->ticket_reference,
+            'total_price' => (float) $booking->total_price,
+            'passenger_name' => $passenger?->name,
+        ];
+
+        if ($passenger && $passenger->email) {
+            Mail::to($passenger->email)->send(new BookingNotificationMail($bookingDetails, 'passenger'));
+        }
+
+        $busOwner = $trip->schedule->bus->busOwner;
+        if ($busOwner && $busOwner->email) {
+            Mail::to($busOwner->email)->send(new BookingNotificationMail($bookingDetails, 'owner'));
+        }
     }
 }

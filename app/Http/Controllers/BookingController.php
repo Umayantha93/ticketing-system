@@ -28,7 +28,7 @@ class BookingController extends Controller
         $trip = $this->bookingRepo->getTripPriceAndSeats($request->trip_id);
         $totalPrice = $trip->schedule->price * count($request->seat_ids);
 
-        ProcessBooking::dispatch(
+        ProcessBooking::dispatchSync(
             auth()->id(),
             $request->trip_id,
             $request->seat_ids,
@@ -37,8 +37,8 @@ class BookingController extends Controller
         );
 
         return response()->json([
-            'message' => 'Booking is being processed. You will receive a confirmation shortly.'
-            ], 202);
+            'message' => 'Booking completed and ticket notifications sent.'
+            ], 201);
     }
 
     public function passengerBookings()
