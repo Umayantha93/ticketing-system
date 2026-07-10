@@ -122,54 +122,35 @@ class BusBookingSeeder extends Seeder
         // 3. Create varied permanent schedules for each bus
         $buses = [$bus1, $bus2, $bus3, $bus4, $bus5, $bus6, $bus7];
         $schedules = [];
-        $templates = [
-            [
-                ['Monday', 'Colombo', 'Kandy', '05:40:00', '08:55:00', 1320.00],
-                ['Wednesday', 'Kandy', 'Colombo', '13:20:00', '16:35:00', 1260.00],
-                ['Friday', 'Colombo', 'Kandy', '18:10:00', '21:20:00', 1490.00],
-                ['Sunday', 'Kandy', 'Colombo', '06:05:00', '09:25:00', 1410.00],
-            ],
-            [
-                ['Tuesday', 'Kandy', 'Colombo', '04:55:00', '08:00:00', 1240.00],
-                ['Thursday', 'Colombo', 'Kandy', '11:35:00', '14:55:00', 1360.00],
-                ['Friday', 'Kandy', 'Colombo', '17:45:00', '20:50:00', 1450.00],
-                ['Saturday', 'Kandy', 'Colombo', '17:45:00', '20:50:00', 1450.00],
-                ['Sunday', 'Colombo', 'Kandy', '09:15:00', '12:35:00', 1330.00],
-            ],
-            [
-                ['Monday', 'Kandy', 'Colombo', '07:25:00', '10:40:00', 1290.00],
-                ['Tuesday', 'Colombo', 'Kandy', '15:05:00', '18:20:00', 1380.00],
-                ['Friday', 'Kandy', 'Colombo', '20:10:00', '23:25:00', 1520.00],
-                ['Saturday', 'Colombo', 'Kandy', '06:30:00', '09:45:00', 1270.00],
-            ],
-            [
-                ['Wednesday', 'Colombo', 'Kandy', '05:15:00', '08:30:00', 1220.00],
-                ['Thursday', 'Colombo', 'Kandy', '12:55:00', '16:10:00', 1370.00],
-                ['Friday', 'Colombo', 'Kandy', '16:45:00', '19:55:00', 1430.00],
-                ['Sunday', 'Kandy', 'Colombo', '21:00:00', '23:59:00', 1550.00],
-            ],
-            [
-                ['Monday', 'Colombo', 'Kandy', '10:10:00', '13:25:00', 1310.00],
-                ['Tuesday', 'Kandy', 'Colombo', '14:40:00', '17:55:00', 1390.00],
-                ['Saturday', 'Colombo', 'Kandy', '19:30:00', '22:40:00', 1500.00],
-                ['Sunday', 'Kandy', 'Colombo', '08:35:00', '11:50:00', 1280.00],
-            ],
-            [
-                ['Wednesday', 'Kandy', 'Colombo', '06:50:00', '10:05:00', 1340.00],
-                ['Thursday', 'Colombo', 'Kandy', '09:45:00', '13:00:00', 1300.00],
-                ['Friday', 'Kandy', 'Colombo', '15:25:00', '18:40:00', 1420.00],
-                ['Saturday', 'Colombo', 'Kandy', '21:15:00', '23:59:00', 1560.00],
-            ],
-            [
-                ['Monday', 'Kandy', 'Colombo', '11:20:00', '14:40:00', 1350.00],
-                ['Tuesday', 'Colombo', 'Kandy', '05:55:00', '09:10:00', 1230.00],
-                ['Thursday', 'Kandy', 'Colombo', '18:05:00', '21:20:00', 1470.00],
-                ['Sunday', 'Colombo', 'Kandy', '16:30:00', '19:45:00', 1400.00],
-            ],
+        $routes = [
+            ['Monday', 'Kandy', 'Pettah Bus Stand', '05:40:00', '08:55:00', 1320.00],
+            ['Tuesday', 'Pettah Bus Stand', 'Kandy', '13:20:00', '16:35:00', 1260.00],
+            ['Wednesday', 'Kandy', 'Kurunagala', '18:10:00', '21:20:00', 1490.00],
+            ['Thursday', 'Kurunagala', 'Kandy', '06:05:00', '09:25:00', 1410.00],
+            ['Friday', 'Kandy', 'Matale', '04:55:00', '08:00:00', 1240.00],
+            ['Saturday', 'Matale', 'Kandy', '11:35:00', '14:55:00', 1360.00],
+            ['Sunday', 'Kandy', 'Nuwaraeliya', '17:45:00', '20:50:00', 1450.00],
+            ['Monday', 'Nuwaraeliya', 'Kandy', '09:15:00', '12:35:00', 1330.00],
+            ['Tuesday', 'Pettah Bus Stand', 'Kurunagala', '07:25:00', '10:40:00', 1290.00],
+            ['Wednesday', 'Kurunagala', 'Pettah Bus Stand', '15:05:00', '18:20:00', 1380.00],
+            ['Thursday', 'Pettah Bus Stand', 'Matale', '20:10:00', '23:25:00', 1520.00],
+            ['Friday', 'Matale', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1270.00],
+            ['Saturday', 'Pettah Bus Stand', 'Nuwaraeliya', '05:15:00', '08:30:00', 1220.00],
+            ['Sunday', 'Nuwaraeliya', 'Pettah Bus Stand', '12:55:00', '16:10:00', 1370.00],
+            ['Monday', 'Kurunagala', 'Matale', '16:45:00', '19:55:00', 1430.00],
+            ['Tuesday', 'Matale', 'Kurunagala', '21:00:00', '23:59:00', 1550.00],
+            ['Wednesday', 'Kurunagala', 'Nuwaraeliya', '10:10:00', '13:25:00', 1310.00],
+            ['Thursday', 'Nuwaraeliya', 'Kurunagala', '14:40:00', '17:55:00', 1390.00],
+            ['Friday', 'Matale', 'Nuwaraeliya', '19:30:00', '22:40:00', 1500.00],
+            ['Saturday', 'Nuwaraeliya', 'Matale', '08:35:00', '11:50:00', 1280.00],
         ];
 
         foreach ($buses as $index => $bus) {
-            $rows = $templates[$index % count($templates)];
+            $rows = [];
+
+            for ($offset = 0; $offset < 4; $offset++) {
+                $rows[] = $routes[($index * 4 + $offset) % count($routes)];
+            }
 
             foreach ($rows as [$dayOfWeek, $origin, $destination, $departureTime, $arrivalTime, $price]) {
                 $schedules[] = Schedule::create([
@@ -181,6 +162,42 @@ class BusBookingSeeder extends Seeder
                     'estimated_arrival_time' => $arrivalTime,
                     'price' => $price,
                 ]);
+            }
+        }
+
+        $defaultBus = $buses[0] ?? null;
+        if ($defaultBus) {
+            $dailyCorridor = [
+                ['Monday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1320.00],
+                ['Tuesday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1320.00],
+                ['Wednesday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1320.00],
+                ['Thursday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1320.00],
+                ['Friday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1320.00],
+                ['Saturday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1320.00],
+                ['Sunday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1320.00],
+                ['Monday', 'Pettah Bus Stand', 'Kandy', '14:30:00', '17:45:00', 1290.00],
+                ['Tuesday', 'Pettah Bus Stand', 'Kandy', '14:30:00', '17:45:00', 1290.00],
+                ['Wednesday', 'Pettah Bus Stand', 'Kandy', '14:30:00', '17:45:00', 1290.00],
+                ['Thursday', 'Pettah Bus Stand', 'Kandy', '14:30:00', '17:45:00', 1290.00],
+                ['Friday', 'Pettah Bus Stand', 'Kandy', '14:30:00', '17:45:00', 1290.00],
+                ['Saturday', 'Pettah Bus Stand', 'Kandy', '14:30:00', '17:45:00', 1290.00],
+                ['Sunday', 'Pettah Bus Stand', 'Kandy', '14:30:00', '17:45:00', 1290.00],
+            ];
+
+            foreach ($dailyCorridor as [$dayOfWeek, $origin, $destination, $departureTime, $arrivalTime, $price]) {
+                Schedule::updateOrCreate(
+                    [
+                        'bus_id' => $defaultBus->id,
+                        'day_of_week' => $dayOfWeek,
+                        'origin' => $origin,
+                        'destination' => $destination,
+                        'departure_time' => $departureTime,
+                    ],
+                    [
+                        'estimated_arrival_time' => $arrivalTime,
+                        'price' => $price,
+                    ]
+                );
             }
         }
 
@@ -208,7 +225,10 @@ class BusBookingSeeder extends Seeder
         }
 
         // 5. Seed bookings with seat assignments
-        $passengers = User::where('role', 'passenger')->get();
+        $passengers = User::query()
+            ->get()
+            ->filter(fn (User $user) => $user->role === 'passenger')
+            ->values();
         $trips = Trip::with('schedule')->orderBy('id')->take(18)->get();
 
         foreach ($trips as $index => $trip) {
@@ -219,17 +239,18 @@ class BusBookingSeeder extends Seeder
             $passenger = $passengers[$index % $passengers->count()];
             $seatCount = ($index % 3) + 1; // 1 to 3 seats per booking
 
-            $availableSeats = TripSeat::where('trip_id', $trip->id)
-                ->where('status', 'available')
-                ->orderBy('id')
+            $availableSeats = TripSeat::query()
+                ->get()
+                ->filter(fn (TripSeat $seat) => $seat->trip_id === $trip->id && $seat->status === 'available')
+                ->sortBy('id')
                 ->take($seatCount)
-                ->get();
+                ->values();
 
             if ($availableSeats->count() === 0) {
                 continue;
             }
 
-            $selectedSeatIds = $availableSeats->pluck('id');
+            $selectedSeatIds = $availableSeats->map(fn (TripSeat $seat) => $seat->id);
             $selectedSeatCount = $selectedSeatIds->count();
 
             $booking = Booking::create([
@@ -246,8 +267,11 @@ class BusBookingSeeder extends Seeder
 
             $booking->seats()->attach($selectedSeatIds->all());
 
-            TripSeat::whereIn('id', $selectedSeatIds->all())
-                ->update(['status' => 'booked']);
+            foreach ($selectedSeatIds->all() as $seatId) {
+                TripSeat::query()
+                    ->where('id', $seatId)
+                    ->update(['status' => 'booked']);
+            }
         }
     }
 
