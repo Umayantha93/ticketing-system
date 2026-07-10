@@ -14,6 +14,9 @@ class TripRepository implements TripRepositoryInterface
 {
     public function searchTrips($origin, $destination, $date)
     {
+        $origin = $this->normalizeLocationName($origin);
+        $destination = $this->normalizeLocationName($destination);
+
         $targetDate = Carbon::parse($date)->format('Y-m-d');
         $dayOfWeek = Carbon::parse($targetDate)->format('l');
 
@@ -23,7 +26,7 @@ class TripRepository implements TripRepositoryInterface
             ->where('day_of_week', $dayOfWeek)
             ->get();
 
-        $trips = new Collection();
+        $tripIds = [];
 
         foreach ($schedules as $schedule) {
             $trip = Trip::firstOrCreate(
@@ -38,11 +41,11 @@ class TripRepository implements TripRepositoryInterface
 
             $this->ensureTripSeats($trip->id, $schedule->bus);
 
-            $trips->push($trip);
+            $tripIds[] = $trip->id;
         }
 
         return Trip::with('schedule.bus', 'seats')
-            ->whereIn('id', $trips->pluck('id'))
+            ->whereIn('id', $tripIds)
             ->orderBy('id')
             ->get();
     }
@@ -60,8 +63,8 @@ class TripRepository implements TripRepositoryInterface
         return Schedule::updateOrCreate(
             [
                 'bus_id' => $data['bus_id'],
-                'origin' => $data['origin'],
-                'destination' => $data['destination'],
+                'origin' => $this->normalizeLocationName($data['origin']),
+                'destination' => $this->normalizeLocationName($data['destination']),
                 'day_of_week' => $data['day_of_week'],
                 'departure_time' => $data['departure_time'],
             ],
@@ -78,7 +81,7 @@ class TripRepository implements TripRepositoryInterface
             return;
         }
 
-        if (TripSeat::where('trip_id', $tripId)->exists()) {
+        if (TripSeat::query()->get()->contains(fn (TripSeat $seat) => $seat->trip_id === $tripId)) {
             return;
         }
 
@@ -96,5 +99,15 @@ class TripRepository implements TripRepositoryInterface
                 $seatNumber++;
             }
         }
+    }
+
+    private function normalizeLocationName(string $location): string
+    {
+        return match ($location) {
+            'Colombo' => 'Pettah Bus Stand',
+            'Kurunegala' => 'Kurunagala',
+            'Nuwara Eliya' => 'Nuwaraeliya',
+            default => $location,
+        };
     }
 }
