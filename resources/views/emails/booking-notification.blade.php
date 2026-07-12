@@ -76,7 +76,7 @@
     @php $isOwner = ($recipientType ?? 'passenger') === 'owner'; @endphp
 
     <div class="header">
-        <img src="{{ asset('bookkara-logo.png') }}" alt="BookKara" class="brand-logo" />
+        <img src="{{ asset('bookkara-logo.svg') }}" alt="BookKara" class="brand-logo" />
         <h1>{{ $isOwner ? '🚌 New Booking Alert' : '🎫 Booking Confirmed' }}</h1>
         <p>{{ $isOwner ? 'A passenger completed a booking for your bus' : 'Your BookKara ticket is ready' }}</p>
     </div>
