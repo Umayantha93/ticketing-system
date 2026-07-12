@@ -16,6 +16,8 @@ use Carbon\Carbon;
 
 class BusBookingSeeder extends Seeder
 {
+    private const SERVICE_CHARGE = 400;
+
     public function run(): void
     {
         // Keep reseeding predictable: removing schedules cascades trips, seats, and bookings.
@@ -63,6 +65,7 @@ class BusBookingSeeder extends Seeder
         // Owner 1 - 3 buses
         $bus1 = Bus::updateOrCreate(['bus_number_plate' => 'WP ND-4589'], [
             'user_id' => $owner1->id,
+            'phone_number' => '0774445556',
             'model' => 'Yutong Luxury A/C',
             'total_seats' => 12,
             'layout_type' => '2x2',
@@ -71,6 +74,7 @@ class BusBookingSeeder extends Seeder
 
         $bus2 = Bus::updateOrCreate(['bus_number_plate' => 'WP KA-7821'], [
             'user_id' => $owner1->id,
+            'phone_number' => '0774445556',
             'model' => 'Mercedes-Benz A/C',
             'total_seats' => 12,
             'layout_type' => '2x1',
@@ -79,6 +83,7 @@ class BusBookingSeeder extends Seeder
 
         $bus3 = Bus::updateOrCreate(['bus_number_plate' => 'WP LA-3456'], [
             'user_id' => $owner1->id,
+            'phone_number' => '0774445556',
             'model' => 'Volvo Semi-Luxury',
             'total_seats' => 12,
             'layout_type' => '2x2',
@@ -88,6 +93,7 @@ class BusBookingSeeder extends Seeder
         // Owner 2 - 2 buses
         $bus4 = Bus::updateOrCreate(['bus_number_plate' => 'CP AB-1234'], [
             'user_id' => $owner2->id,
+            'phone_number' => '0775556667',
             'model' => 'Tata Luxury',
             'total_seats' => 12,
             'layout_type' => '2x2',
@@ -96,6 +102,7 @@ class BusBookingSeeder extends Seeder
 
         $bus5 = Bus::updateOrCreate(['bus_number_plate' => 'CP CD-5678'], [
             'user_id' => $owner2->id,
+            'phone_number' => '0775556667',
             'model' => 'Ashok Leyland A/C',
             'total_seats' => 12,
             'layout_type' => '2x1',
@@ -105,6 +112,7 @@ class BusBookingSeeder extends Seeder
         // Owner 3 - 2 buses
         $bus6 = Bus::updateOrCreate(['bus_number_plate' => 'SP EF-9012'], [
             'user_id' => $owner3->id,
+            'phone_number' => '0776667778',
             'model' => 'Scania Super Luxury',
             'total_seats' => 12,
             'layout_type' => '2x2',
@@ -113,6 +121,7 @@ class BusBookingSeeder extends Seeder
 
         $bus7 = Bus::updateOrCreate(['bus_number_plate' => 'SP GH-3456'], [
             'user_id' => $owner3->id,
+            'phone_number' => '0776667778',
             'model' => 'MAN Express',
             'total_seats' => 12,
             'layout_type' => '2x1',
@@ -123,7 +132,7 @@ class BusBookingSeeder extends Seeder
         $buses = [$bus1, $bus2, $bus3, $bus4, $bus5, $bus6, $bus7];
         $schedules = [];
         $routes = [
-            ['Monday', 'Kandy', 'Pettah Bus Stand', '05:40:00', '08:55:00', 1320.00],
+            ['Monday', 'Kandy', 'Pettah Bus Stand', '05:40:00', '08:55:00', 1000.00],
             ['Tuesday', 'Pettah Bus Stand', 'Kandy', '13:20:00', '16:35:00', 1260.00],
             ['Wednesday', 'Kandy', 'Kurunagala', '18:10:00', '21:20:00', 1490.00],
             ['Thursday', 'Kurunagala', 'Kandy', '06:05:00', '09:25:00', 1410.00],
@@ -168,13 +177,13 @@ class BusBookingSeeder extends Seeder
         $defaultBus = $buses[0] ?? null;
         if ($defaultBus) {
             $dailyCorridor = [
-                ['Monday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1320.00],
-                ['Tuesday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1320.00],
-                ['Wednesday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1320.00],
-                ['Thursday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1320.00],
-                ['Friday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1320.00],
-                ['Saturday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1320.00],
-                ['Sunday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1320.00],
+                ['Monday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1000.00],
+                ['Tuesday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1000.00],
+                ['Wednesday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1000.00],
+                ['Thursday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1000.00],
+                ['Friday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1000.00],
+                ['Saturday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1000.00],
+                ['Sunday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1000.00],
                 ['Monday', 'Pettah Bus Stand', 'Kandy', '14:30:00', '17:45:00', 1290.00],
                 ['Tuesday', 'Pettah Bus Stand', 'Kandy', '14:30:00', '17:45:00', 1290.00],
                 ['Wednesday', 'Pettah Bus Stand', 'Kandy', '14:30:00', '17:45:00', 1290.00],
@@ -258,7 +267,7 @@ class BusBookingSeeder extends Seeder
                 'trip_id' => $trip->id,
                 'ticket_reference' => 'TKT-' . strtoupper(Str::random(10)),
                 'ticket_count' => $selectedSeatCount,
-                'total_price' => (float) $trip->schedule->price * $selectedSeatCount,
+                'total_price' => ((float) $trip->schedule->price + self::SERVICE_CHARGE) * $selectedSeatCount,
                 'onboarding_location' => $trip->schedule->origin . ' Main Stand',
                 'status' => 'confirmed',
                 'payment_method' => 'card',

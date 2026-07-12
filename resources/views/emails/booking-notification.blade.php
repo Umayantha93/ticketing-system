@@ -18,6 +18,13 @@
             text-align: center;
             border-radius: 8px 8px 0 0;
         }
+        .brand-logo {
+            width: 180px;
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto 10px;
+        }
         .content {
             background: #f9fafb;
             padding: 30px;
@@ -69,6 +76,7 @@
     @php $isOwner = ($recipientType ?? 'passenger') === 'owner'; @endphp
 
     <div class="header">
+        <img src="{{ asset('bookkara-logo.svg') }}" alt="BookKara" class="brand-logo" />
         <h1>{{ $isOwner ? '🚌 New Booking Alert' : '🎫 Booking Confirmed' }}</h1>
         <p>{{ $isOwner ? 'A passenger completed a booking for your bus' : 'Your BookKara ticket is ready' }}</p>
     </div>
@@ -154,7 +162,7 @@
     </div>
 
     <div class="footer">
-        <p><strong>Lanka Express</strong> - Your Trusted Travel Partner</p>
+        <p><strong>BookKara</strong> - Your Trusted Travel Partner</p>
         <p>This is an automated notification. Please do not reply to this email.</p>
     </div>
 </body>
