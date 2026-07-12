@@ -214,6 +214,7 @@ class AdminController extends Controller
         $validated = $request->validate([
             'user_id'          => 'required|exists:users,id',
             'bus_number_plate' => 'required|string|unique:buses,bus_number_plate',
+            'phone_number'     => 'required|string|max:20',
             'model'            => 'required|string',
             'total_seats'      => 'required|integer|min:1',
             'layout_type'      => 'required|in:2x2,2x1',
@@ -228,6 +229,7 @@ class AdminController extends Controller
         $bus = Bus::create([
             'user_id'          => $validated['user_id'],
             'bus_number_plate' => $validated['bus_number_plate'],
+            'phone_number'     => $validated['phone_number'],
             'model'            => $validated['model'],
             'total_seats'      => $validated['total_seats'],
             'layout_type'      => $validated['layout_type'],

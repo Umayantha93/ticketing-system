@@ -26,7 +26,7 @@ class VariedScheduleSeeder extends Seeder
             }
 
             $routes = [
-                ['Monday', 'Kandy', 'Pettah Bus Stand', '05:40:00', '08:55:00', 1320.00],
+                ['Monday', 'Kandy', 'Pettah Bus Stand', '05:40:00', '08:55:00', 1000.00],
                 ['Tuesday', 'Pettah Bus Stand', 'Kandy', '13:20:00', '16:35:00', 1260.00],
                 ['Wednesday', 'Kandy', 'Kurunagala', '18:10:00', '21:20:00', 1490.00],
                 ['Thursday', 'Kurunagala', 'Kandy', '06:05:00', '09:25:00', 1410.00],
@@ -71,13 +71,13 @@ class VariedScheduleSeeder extends Seeder
             $defaultBusId = $buses[0] ?? null;
             if ($defaultBusId) {
                 $dailyCorridor = [
-                    ['Monday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1320.00],
-                    ['Tuesday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1320.00],
-                    ['Wednesday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1320.00],
-                    ['Thursday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1320.00],
-                    ['Friday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1320.00],
-                    ['Saturday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1320.00],
-                    ['Sunday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1320.00],
+                    ['Monday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1000.00],
+                    ['Tuesday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1000.00],
+                    ['Wednesday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1000.00],
+                    ['Thursday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1000.00],
+                    ['Friday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1000.00],
+                    ['Saturday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1000.00],
+                    ['Sunday', 'Kandy', 'Pettah Bus Stand', '06:30:00', '09:45:00', 1000.00],
                     ['Monday', 'Pettah Bus Stand', 'Kandy', '14:30:00', '17:45:00', 1290.00],
                     ['Tuesday', 'Pettah Bus Stand', 'Kandy', '14:30:00', '17:45:00', 1290.00],
                     ['Wednesday', 'Pettah Bus Stand', 'Kandy', '14:30:00', '17:45:00', 1290.00],

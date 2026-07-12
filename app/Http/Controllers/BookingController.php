@@ -9,6 +9,8 @@ use App\Models\Booking;
 
 class BookingController extends Controller
 {
+    private const SERVICE_CHARGE = 400;
+
     protected $bookingRepo;
 
     public function __construct(BookingRepositoryInterface $bookingRepo)
@@ -26,7 +28,9 @@ class BookingController extends Controller
         ]);
 
         $trip = $this->bookingRepo->getTripPriceAndSeats($request->trip_id);
-        $totalPrice = $trip->schedule->price * count($request->seat_ids);
+        $seatCount = count($request->seat_ids);
+        $pricePerSeat = (float) $trip->schedule->price + self::SERVICE_CHARGE;
+        $totalPrice = $pricePerSeat * $seatCount;
 
         ProcessBooking::dispatchSync(
             auth()->id(),

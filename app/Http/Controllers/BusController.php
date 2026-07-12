@@ -18,6 +18,7 @@ class BusController extends Controller
     {
         $validatedData = $request->validate([
             'bus_number_plate' => 'required|string|unique:buses,bus_number_plate',
+            'phone_number' => 'required|string|max:20',
             'model' => 'required|string',
             'total_seats' => 'required|integer|min:1',
             'layout_type' => 'required|in:2x2,2x1',
@@ -44,6 +45,7 @@ class BusController extends Controller
 
         $validatedData = $request->validate([
             'bus_number_plate' => 'sometimes|string|unique:buses,bus_number_plate,' . $id,
+            'phone_number' => 'sometimes|string|max:20',
             'model' => 'sometimes|string',
             'total_seats' => 'sometimes|integer|min:1',
             'layout_type' => 'sometimes|in:2x2,2x1',
@@ -57,7 +59,7 @@ class BusController extends Controller
         }
 
         // If bus details are being changed (not just status), set to pending approval
-        if (isset($validatedData['bus_number_plate']) || isset($validatedData['model']) ||
+        if (isset($validatedData['bus_number_plate']) || isset($validatedData['phone_number']) || isset($validatedData['model']) ||
             isset($validatedData['total_seats']) || isset($validatedData['layout_type'])) {
             $validatedData['approval_status'] = 'pending';
             $validatedData['status'] = 'inactive';

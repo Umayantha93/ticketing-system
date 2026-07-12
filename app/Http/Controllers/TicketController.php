@@ -33,6 +33,7 @@ class TicketController extends Controller
             'passenger_email' => $booking->passenger->email,
             'passenger_phone' => $booking->passenger->phone_number,
             'bus_number' => $booking->trip->schedule->bus->bus_number_plate,
+            'transport_contact_number' => $booking->trip->schedule->bus->phone_number,
             'bus_model' => $booking->trip->schedule->bus->model,
             'layout_type' => $booking->trip->schedule->bus->layout_type,
             'origin' => $booking->trip->schedule->origin,
@@ -70,6 +71,7 @@ class TicketController extends Controller
 
         $bookingDetails = [
             'bus_number_plate' => $booking->trip->schedule->bus->bus_number_plate,
+            'transport_contact_number' => $booking->trip->schedule->bus->phone_number,
             'bus_model' => $booking->trip->schedule->bus->model,
             'origin' => $booking->trip->schedule->origin,
             'destination' => $booking->trip->schedule->destination,
