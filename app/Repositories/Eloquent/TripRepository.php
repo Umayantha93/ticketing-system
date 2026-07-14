@@ -8,7 +8,6 @@ use App\Models\Schedule;
 use App\Models\TripSeat;
 use App\Repositories\Contracts\TripRepositoryInterface;
 use Carbon\Carbon;
-use Illuminate\Support\Collection;
 
 class TripRepository implements TripRepositoryInterface
 {
@@ -24,6 +23,7 @@ class TripRepository implements TripRepositoryInterface
             ->where('origin', $origin)
             ->where('destination', $destination)
             ->where('day_of_week', $dayOfWeek)
+            ->whereHas('bus', fn ($query) => $query->approvedAndActive())
             ->get();
 
         $tripIds = [];
@@ -52,10 +52,11 @@ class TripRepository implements TripRepositoryInterface
 
     public function getTripWithSeats($id)
     {
-        // Implement the logic to retrieve a trip along with its associated seats
-        // For example, you can use Eloquent's with method to eager load the seats relationship
+        $trip = Trip::with('schedule.bus', 'seats')->findOrFail($id);
 
-        return Trip::with('schedule.bus', 'seats')->findOrFail($id);
+        $this->ensureTripSeats($trip->id, $trip->schedule?->bus);
+
+        return $trip->fresh(['schedule.bus', 'seats']);
     }
 
     public function createSchedule(array $data)
@@ -81,24 +82,94 @@ class TripRepository implements TripRepositoryInterface
             return;
         }
 
-        if (TripSeat::query()->get()->contains(fn (TripSeat $seat) => $seat->trip_id === $tripId)) {
-            return;
+        $existingSeats = TripSeat::query()
+            ->where('trip_id', $tripId)
+            ->get()
+            ->keyBy('seat_number');
+
+        $requiredSeatNumbers = $this->buildSeatNumbers($bus);
+
+        foreach ($requiredSeatNumbers as $seatNumber) {
+            if ($existingSeats->has($seatNumber)) {
+                continue;
+            }
+
+            TripSeat::create([
+                'trip_id' => $tripId,
+                'seat_number' => $seatNumber,
+                'status' => 'available',
+            ]);
         }
 
-        $seatRows = ['A', 'B', 'C'];
-        $seatLimit = min($bus->total_seats, count($seatRows) * 4);
+        $staleSeatNumbers = $existingSeats->keys()->diff($requiredSeatNumbers);
 
-        $seatNumber = 0;
-        foreach ($seatRows as $row) {
-            for ($number = 1; $number <= 4 && $seatNumber < $seatLimit; $number++) {
-                TripSeat::create([
-                    'trip_id' => $tripId,
-                    'seat_number' => $row . $number,
-                    'status' => 'available',
-                ]);
-                $seatNumber++;
+        foreach ($staleSeatNumbers as $seatNumber) {
+            $seat = $existingSeats->get($seatNumber);
+
+            if ($seat && $seat->status === 'available' && !$seat->bookings()->exists()) {
+                $seat->delete();
             }
         }
+    }
+
+    private function buildSeatNumbers(Bus $bus): array
+    {
+        $seatNumbers = [];
+
+        foreach ($this->buildRowCounts((int) $bus->total_seats, $this->getStandardRowCapacity($bus), (int) $bus->last_row_seats) as $rowIndex => $seatCount) {
+            $rowLabel = $this->getRowLabel($rowIndex);
+
+            for ($number = 1; $number <= $seatCount; $number++) {
+                $seatNumbers[] = $rowLabel . $number;
+            }
+        }
+
+        return $seatNumbers;
+    }
+
+    private function buildRowCounts(int $totalSeats, int $standardRowCapacity, int $lastRowSeats): array
+    {
+        if ($totalSeats <= 0) {
+            return [];
+        }
+
+        $rearRowSeats = min(max(1, $lastRowSeats), $totalSeats);
+        $frontSectionSeats = $totalSeats - $rearRowSeats;
+
+        if ($frontSectionSeats === 0) {
+            return [$rearRowSeats];
+        }
+
+        $frontRowCount = max(1, (int) ceil($frontSectionSeats / $standardRowCapacity));
+        $baseSeatsPerRow = intdiv($frontSectionSeats, $frontRowCount);
+        $extraSeats = $frontSectionSeats % $frontRowCount;
+        $rowCounts = [];
+
+        for ($rowIndex = 0; $rowIndex < $frontRowCount; $rowIndex++) {
+            $rowCounts[] = $baseSeatsPerRow + ($rowIndex < $extraSeats ? 1 : 0);
+        }
+
+        $rowCounts[] = $rearRowSeats;
+
+        return array_values(array_filter($rowCounts));
+    }
+
+    private function getStandardRowCapacity(Bus $bus): int
+    {
+        return $bus->layout_type === '2x1' ? 3 : 4;
+    }
+
+    private function getRowLabel(int $rowIndex): string
+    {
+        $label = '';
+        $position = $rowIndex;
+
+        do {
+            $label = chr(65 + ($position % 26)) . $label;
+            $position = intdiv($position, 26) - 1;
+        } while ($position >= 0);
+
+        return $label;
     }
 
     private function normalizeLocationName(string $location): string

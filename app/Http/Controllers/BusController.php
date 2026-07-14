@@ -22,7 +22,14 @@ class BusController extends Controller
             'model' => 'required|string',
             'total_seats' => 'required|integer|min:1',
             'layout_type' => 'required|in:2x2,2x1',
+            'last_row_seats' => 'required|integer|between:1,8',
         ]);
+
+        if ((int) $validatedData['last_row_seats'] > (int) $validatedData['total_seats']) {
+            return response()->json([
+                'message' => 'Last row seats cannot exceed total seats.',
+            ], 422);
+        }
 
         $busData = array_merge($validatedData, [
             'user_id' => auth()->id(),
@@ -49,8 +56,18 @@ class BusController extends Controller
             'model' => 'sometimes|string',
             'total_seats' => 'sometimes|integer|min:1',
             'layout_type' => 'sometimes|in:2x2,2x1',
+            'last_row_seats' => 'sometimes|integer|between:1,8',
             'status' => 'sometimes|in:active,inactive',
         ]);
+
+        $effectiveTotalSeats = (int) ($validatedData['total_seats'] ?? $bus->total_seats);
+        $effectiveLastRowSeats = (int) ($validatedData['last_row_seats'] ?? $bus->last_row_seats);
+
+        if ($effectiveLastRowSeats > $effectiveTotalSeats) {
+            return response()->json([
+                'message' => 'Last row seats cannot exceed total seats.',
+            ], 422);
+        }
 
         if (isset($validatedData['status']) && $validatedData['status'] === 'active') {
             return response()->json([
@@ -60,7 +77,7 @@ class BusController extends Controller
 
         // If bus details are being changed (not just status), set to pending approval
         if (isset($validatedData['bus_number_plate']) || isset($validatedData['phone_number']) || isset($validatedData['model']) ||
-            isset($validatedData['total_seats']) || isset($validatedData['layout_type'])) {
+            isset($validatedData['total_seats']) || isset($validatedData['layout_type']) || isset($validatedData['last_row_seats'])) {
             $validatedData['approval_status'] = 'pending';
             $validatedData['status'] = 'inactive';
         }

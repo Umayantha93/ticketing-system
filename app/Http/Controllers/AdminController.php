@@ -218,7 +218,14 @@ class AdminController extends Controller
             'model'            => 'required|string',
             'total_seats'      => 'required|integer|min:1',
             'layout_type'      => 'required|in:2x2,2x1',
+            'last_row_seats'   => 'required|integer|between:1,8',
         ]);
+
+        if ((int) $validated['last_row_seats'] > (int) $validated['total_seats']) {
+            return response()->json([
+                'message' => 'Last row seats cannot exceed total seats.',
+            ], 422);
+        }
 
         // Verify the user is actually a bus owner
         $owner = User::find($validated['user_id']);
@@ -233,6 +240,7 @@ class AdminController extends Controller
             'model'            => $validated['model'],
             'total_seats'      => $validated['total_seats'],
             'layout_type'      => $validated['layout_type'],
+            'last_row_seats'   => $validated['last_row_seats'],
             'status'           => 'active',
             'approval_status'  => 'approved',
         ]);
