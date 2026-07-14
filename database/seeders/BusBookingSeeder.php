@@ -67,27 +67,33 @@ class BusBookingSeeder extends Seeder
             'user_id' => $owner1->id,
             'phone_number' => '0774445556',
             'model' => 'Yutong Luxury A/C',
-            'total_seats' => 12,
+            'total_seats' => 13,
             'layout_type' => '2x2',
-            'status' => 'active'
+            'last_row_seats' => 5,
+            'status' => 'active',
+            'approval_status' => 'approved',
         ]);
 
         $bus2 = Bus::updateOrCreate(['bus_number_plate' => 'WP KA-7821'], [
             'user_id' => $owner1->id,
             'phone_number' => '0774445556',
             'model' => 'Mercedes-Benz A/C',
-            'total_seats' => 12,
+            'total_seats' => 14,
             'layout_type' => '2x1',
-            'status' => 'active'
+            'last_row_seats' => 5,
+            'status' => 'active',
+            'approval_status' => 'approved',
         ]);
 
         $bus3 = Bus::updateOrCreate(['bus_number_plate' => 'WP LA-3456'], [
             'user_id' => $owner1->id,
             'phone_number' => '0774445556',
             'model' => 'Volvo Semi-Luxury',
-            'total_seats' => 12,
+            'total_seats' => 16,
             'layout_type' => '2x2',
-            'status' => 'active'
+            'last_row_seats' => 4,
+            'status' => 'active',
+            'approval_status' => 'approved',
         ]);
 
         // Owner 2 - 2 buses
@@ -95,18 +101,22 @@ class BusBookingSeeder extends Seeder
             'user_id' => $owner2->id,
             'phone_number' => '0775556667',
             'model' => 'Tata Luxury',
-            'total_seats' => 12,
+            'total_seats' => 15,
             'layout_type' => '2x2',
-            'status' => 'active'
+            'last_row_seats' => 5,
+            'status' => 'active',
+            'approval_status' => 'approved',
         ]);
 
         $bus5 = Bus::updateOrCreate(['bus_number_plate' => 'CP CD-5678'], [
             'user_id' => $owner2->id,
             'phone_number' => '0775556667',
             'model' => 'Ashok Leyland A/C',
-            'total_seats' => 12,
+            'total_seats' => 11,
             'layout_type' => '2x1',
-            'status' => 'active'
+            'last_row_seats' => 5,
+            'status' => 'active',
+            'approval_status' => 'approved',
         ]);
 
         // Owner 3 - 2 buses
@@ -114,9 +124,11 @@ class BusBookingSeeder extends Seeder
             'user_id' => $owner3->id,
             'phone_number' => '0776667778',
             'model' => 'Scania Super Luxury',
-            'total_seats' => 12,
+            'total_seats' => 18,
             'layout_type' => '2x2',
-            'status' => 'active'
+            'last_row_seats' => 6,
+            'status' => 'active',
+            'approval_status' => 'approved',
         ]);
 
         $bus7 = Bus::updateOrCreate(['bus_number_plate' => 'SP GH-3456'], [
@@ -125,7 +137,9 @@ class BusBookingSeeder extends Seeder
             'model' => 'MAN Express',
             'total_seats' => 12,
             'layout_type' => '2x1',
-            'status' => 'active'
+            'last_row_seats' => 4,
+            'status' => 'active',
+            'approval_status' => 'approved',
         ]);
 
         // 3. Create varied permanent schedules for each bus
@@ -220,16 +234,12 @@ class BusBookingSeeder extends Seeder
                 'status' => 'scheduled'
             ]);
 
-            // Automatically build the individual physical seats for trip
-            $seatRows = ['A', 'B', 'C'];
-            foreach ($seatRows as $row) {
-                for ($num = 1; $num <= 4; $num++) {
-                    TripSeat::create([
-                        'trip_id' => $trip->id,
-                        'seat_number' => $row . $num,
-                        'status' => 'available'
-                    ]);
-                }
+            foreach ($this->buildSeatNumbers($schedule->bus) as $seatNumber) {
+                TripSeat::create([
+                    'trip_id' => $trip->id,
+                    'seat_number' => $seatNumber,
+                    'status' => 'available'
+                ]);
             }
         }
 
@@ -292,5 +302,36 @@ class BusBookingSeeder extends Seeder
         }
 
         return $today->next($dayOfWeek);
+    }
+
+    private function buildSeatNumbers(Bus $bus): array
+    {
+        $seatNumbers = [];
+        $standardRowCapacity = $bus->layout_type === '2x1' ? 3 : 4;
+        $rearRowSeats = min(max(1, (int) $bus->last_row_seats), (int) $bus->total_seats);
+        $frontSectionSeats = (int) $bus->total_seats - $rearRowSeats;
+        $rowCounts = [];
+
+        if ($frontSectionSeats > 0) {
+            $frontRowCount = max(1, (int) ceil($frontSectionSeats / $standardRowCapacity));
+            $baseSeatsPerRow = intdiv($frontSectionSeats, $frontRowCount);
+            $extraSeats = $frontSectionSeats % $frontRowCount;
+
+            for ($rowIndex = 0; $rowIndex < $frontRowCount; $rowIndex++) {
+                $rowCounts[] = $baseSeatsPerRow + ($rowIndex < $extraSeats ? 1 : 0);
+            }
+        }
+
+        $rowCounts[] = $rearRowSeats;
+
+        foreach (array_values(array_filter($rowCounts)) as $rowIndex => $seatCount) {
+            $rowLabel = chr(65 + $rowIndex);
+
+            for ($seatNumber = 1; $seatNumber <= $seatCount; $seatNumber++) {
+                $seatNumbers[] = $rowLabel . $seatNumber;
+            }
+        }
+
+        return $seatNumbers;
     }
 }
