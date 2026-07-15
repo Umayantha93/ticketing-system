@@ -155,7 +155,9 @@ class TripRepository implements TripRepositoryInterface
 
     private function getStandardRowCapacity(Bus $bus): int
     {
-        return $bus->layout_type === '2x1' ? 3 : 4;
+        [$left, $right] = array_pad(explode('x', $bus->layout_type), 2, '0');
+
+        return max(1, ((int) $left) + ((int) $right));
     }
 
     private function getRowLabel(int $rowIndex): string

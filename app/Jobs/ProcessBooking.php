@@ -26,6 +26,9 @@ class ProcessBooking implements ShouldQueue
     protected $totalPrice;
     protected $onboardingLocation;
 
+    private const TICKET_REFERENCE_PREFIX = 'TKT-';
+    private const TICKET_REFERENCE_LENGTH = 8;
+
     public function __construct($userId, $tripId, $seatIds, $totalPrice, $onboardingLocation = null)
     {
         $this->userId = $userId;
@@ -56,7 +59,7 @@ class ProcessBooking implements ShouldQueue
             $booking = Booking::create([
                 'user_id' => $this->userId,
                 'trip_id' => $this->tripId,
-                'ticket_reference' => uniqid('ticket_' . strtoupper(Str::random(8))),
+                'ticket_reference' => $this->generateTicketReference(),
                 'ticket_count' => count($this->seatIds),
                 'total_price' => $this->totalPrice,
                 'onboarding_location' => $this->onboardingLocation,
@@ -91,12 +94,11 @@ class ProcessBooking implements ShouldQueue
 
         $bookingDetails = [
             'bus_number_plate' => $trip->schedule->bus->bus_number_plate,
-            'bus_model' => $trip->schedule->bus->model,
+            'transport_contact_number' => $trip->schedule->bus->phone_number,
             'origin' => $trip->schedule->origin,
             'destination' => $trip->schedule->destination,
             'departure_date' => $trip->departure_date,
             'departure_time' => $trip->schedule->departure_time,
-            'onboarding_location' => $this->onboardingLocation ?? 'Not specified',
             'seat_numbers' => $seatNumbers,
             'ticket_count' => count($this->seatIds),
             'ticket_reference' => $booking->ticket_reference,
@@ -112,5 +114,14 @@ class ProcessBooking implements ShouldQueue
         if ($busOwner && $busOwner->email) {
             Mail::to($busOwner->email)->send(new BookingNotificationMail($bookingDetails, 'owner'));
         }
+    }
+
+    private function generateTicketReference(): string
+    {
+        do {
+            $reference = self::TICKET_REFERENCE_PREFIX . strtoupper(Str::random(self::TICKET_REFERENCE_LENGTH));
+        } while (Booking::where('ticket_reference', $reference)->exists());
+
+        return $reference;
     }
 }

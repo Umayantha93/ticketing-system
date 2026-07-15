@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('ticket_reference')->unique();
             $table->integer('ticket_count')->default(1);
             $table->decimal('total_price', 10, 2);
+            $table->string('onboarding_location')->nullable();
             $table->enum('status', ['pending', 'confirmed', 'cancelled'])->default('pending');
             $table->string('payment_method')->default('card');
             $table->enum('payment_status', ['pending', 'paid', 'failed', 'refunded'])->default('pending');

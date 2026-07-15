@@ -80,7 +80,7 @@ class BusBookingSeeder extends Seeder
             'phone_number' => '0774445556',
             'model' => 'Mercedes-Benz A/C',
             'total_seats' => 14,
-            'layout_type' => '2x1',
+            'layout_type' => '1x2',
             'last_row_seats' => 5,
             'status' => 'active',
             'approval_status' => 'approved',
@@ -114,7 +114,7 @@ class BusBookingSeeder extends Seeder
             'phone_number' => '0775556667',
             'model' => 'Ashok Leyland A/C',
             'total_seats' => 11,
-            'layout_type' => '2x1',
+            'layout_type' => '1x3',
             'last_row_seats' => 5,
             'status' => 'active',
             'approval_status' => 'approved',
@@ -137,7 +137,7 @@ class BusBookingSeeder extends Seeder
             'phone_number' => '0776667778',
             'model' => 'MAN Express',
             'total_seats' => 12,
-            'layout_type' => '2x1',
+            'layout_type' => '2x3',
             'last_row_seats' => 4,
             'status' => 'active',
             'approval_status' => 'approved',
@@ -334,7 +334,8 @@ class BusBookingSeeder extends Seeder
     private function buildSeatNumbers(Bus $bus): array
     {
         $seatNumbers = [];
-        $standardRowCapacity = $bus->layout_type === '2x1' ? 3 : 4;
+        [$left, $right] = array_pad(explode('x', $bus->layout_type), 2, '0');
+        $standardRowCapacity = max(1, ((int) $left) + ((int) $right));
         $rearRowSeats = min(max(1, (int) $bus->last_row_seats), (int) $bus->total_seats);
         $frontSectionSeats = (int) $bus->total_seats - $rearRowSeats;
         $rowCounts = [];

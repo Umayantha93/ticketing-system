@@ -1,169 +1,132 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>New Booking Notification</title>
+    <title>BookKara Ticket</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
+            line-height: 1.5;
+            color: #1f2937;
+            max-width: 620px;
             margin: 0 auto;
             padding: 20px;
+            background: #f3f4f6;
         }
-        .header {
-            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
-            color: white;
+        .ticket {
+            background: #ffffff;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .ticket-header {
+            background: #0f172a;
+            color: #ffffff;
+            padding: 16px 20px;
+        }
+        .ticket-header h1 {
+            margin: 0;
+            font-size: 20px;
+        }
+        .ticket-header p {
+            margin: 6px 0 0;
+            font-size: 13px;
+            opacity: 0.9;
+        }
+        .ref-badge {
+            display: inline-block;
+            margin-top: 10px;
+            background: #22c55e;
+            color: #052e16;
+            font-weight: 700;
+            font-size: 12px;
+            padding: 5px 10px;
+            border-radius: 999px;
+        }
+        .ticket-body {
             padding: 20px;
-            text-align: center;
-            border-radius: 8px 8px 0 0;
         }
-        .brand-logo {
-            width: 180px;
-            max-width: 100%;
-            height: auto;
-            display: block;
-            margin: 0 auto 10px;
-        }
-        .content {
-            background: #f9fafb;
-            padding: 30px;
-            border: 1px solid #e5e7eb;
-        }
-        .info-box {
-            background: white;
-            padding: 15px;
-            margin: 15px 0;
-            border-left: 4px solid #3b82f6;
-            border-radius: 4px;
-        }
-        .info-row {
+        .row {
             display: flex;
             justify-content: space-between;
-            margin: 8px 0;
-            padding: 8px 0;
-            border-bottom: 1px solid #e5e7eb;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px dashed #e5e7eb;
         }
-        .info-row:last-child {
+        .row:last-child {
             border-bottom: none;
         }
         .label {
-            font-weight: bold;
             color: #6b7280;
+            font-weight: 700;
+            font-size: 13px;
         }
         .value {
             color: #111827;
-            font-weight: 600;
+            font-weight: 700;
+            font-size: 14px;
+            text-align: right;
         }
-        .alert {
-            background: #fef3c7;
-            border: 1px solid #fbbf24;
-            padding: 15px;
-            border-radius: 4px;
-            margin: 20px 0;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #e5e7eb;
-            color: #6b7280;
+        .ticket-footer {
+            padding: 12px 20px 18px;
             font-size: 12px;
+            color: #6b7280;
+            text-align: center;
+            border-top: 1px solid #e5e7eb;
         }
     </style>
 </head>
 <body>
-    @php $isOwner = ($recipientType ?? 'passenger') === 'owner'; @endphp
+    @php
+        $isOwner = ($recipientType ?? 'passenger') === 'owner';
+        $seatNumbers = implode(', ', $bookingDetails['seat_numbers'] ?? []);
+        $departureDateTime = trim(($bookingDetails['departure_date'] ?? '') . ' ' . ($bookingDetails['departure_time'] ?? ''));
+    @endphp
 
-    <div class="header">
-        <img src="{{ asset('bookkara-logo.svg') }}" alt="BookKara" class="brand-logo" />
-        <h1>{{ $isOwner ? '🚌 New Booking Alert' : '🎫 Booking Confirmed' }}</h1>
-        <p>{{ $isOwner ? 'A passenger completed a booking for your bus' : 'Your BookKara ticket is ready' }}</p>
-    </div>
-
-    <div class="content">
-        @if($isOwner)
-            <div class="alert">
-                <strong>⚠️ Action Required:</strong> A new booking was completed. Please prepare your bus and boarding point for this trip.
-            </div>
-        @else
-            <div class="alert" style="background:#dcfce7;border-color:#22c55e;">
-                <strong>✅ Success:</strong> Your booking has been confirmed. Please keep your ticket reference for travel.
-            </div>
-        @endif
-
-        <div class="info-box">
-            <h3>Bus Information</h3>
-            <div class="info-row">
-                <span class="label">Bus Number Plate:</span>
-                <span class="value">{{ $bookingDetails['bus_number_plate'] }}</span>
-            </div>
-            <div class="info-row">
-                <span class="label">Bus Model:</span>
-                <span class="value">{{ $bookingDetails['bus_model'] }}</span>
-            </div>
+    <div class="ticket">
+        <div class="ticket-header">
+            <h1>{{ $isOwner ? 'Bus Owner Booking Ticket' : 'Passenger Bus Ticket' }}</h1>
+            <p>{{ $isOwner ? 'A new confirmed booking for your bus' : 'Your booking is confirmed' }}</p>
+            <span class="ref-badge">Booking Ref: {{ $bookingDetails['ticket_reference'] ?? 'N/A' }}</span>
         </div>
 
-        <div class="info-box">
-            <h3>Trip Details</h3>
-            <div class="info-row">
-                <span class="label">Route:</span>
-                <span class="value">{{ $bookingDetails['origin'] }} → {{ $bookingDetails['destination'] }}</span>
+        <div class="ticket-body">
+            <div class="row">
+                <span class="label">Bus Number Plate</span>
+                <span class="value">{{ $bookingDetails['bus_number_plate'] ?? 'N/A' }}</span>
             </div>
-            <div class="info-row">
-                <span class="label">Departure Date:</span>
-                <span class="value">{{ $bookingDetails['departure_date'] }}</span>
+            <div class="row">
+                <span class="label">Route</span>
+                <span class="value">{{ ($bookingDetails['origin'] ?? 'N/A') . ' -> ' . ($bookingDetails['destination'] ?? 'N/A') }}</span>
             </div>
-            <div class="info-row">
-                <span class="label">Departure Time:</span>
-                <span class="value">{{ $bookingDetails['departure_time'] }}</span>
+            <div class="row">
+                <span class="label">Departure Date & Time</span>
+                <span class="value">{{ $departureDateTime !== '' ? $departureDateTime : 'N/A' }}</span>
             </div>
-        </div>
-
-        <div class="info-box">
-            <h3>Passenger Information</h3>
-            @if($bookingDetails['passenger_name'] ?? null)
-            <div class="info-row">
-                <span class="label">Passenger Name:</span>
-                <span class="value">{{ $bookingDetails['passenger_name'] }}</span>
+            <div class="row">
+                <span class="label">Passenger Name</span>
+                <span class="value">{{ $bookingDetails['passenger_name'] ?? 'N/A' }}</span>
             </div>
-            @endif
-            <div class="info-row">
-                <span class="label">Onboarding Location:</span>
-                <span class="value">{{ $bookingDetails['onboarding_location'] }}</span>
+            <div class="row">
+                <span class="label">Bus Phone Number</span>
+                <span class="value">{{ $bookingDetails['transport_contact_number'] ?? 'N/A' }}</span>
             </div>
-            <div class="info-row">
-                <span class="label">Seat Numbers:</span>
-                <span class="value">{{ implode(', ', $bookingDetails['seat_numbers']) }}</span>
+            <div class="row">
+                <span class="label">Number of Passengers</span>
+                <span class="value">{{ $bookingDetails['ticket_count'] ?? '0' }}</span>
             </div>
-            <div class="info-row">
-                <span class="label">Number of Passengers:</span>
-                <span class="value">{{ $bookingDetails['ticket_count'] }}</span>
+            <div class="row">
+                <span class="label">Seat Numbers</span>
+                <span class="value">{{ $seatNumbers !== '' ? $seatNumbers : 'N/A' }}</span>
             </div>
-            <div class="info-row">
-                <span class="label">Booking Reference:</span>
-                <span class="value">{{ $bookingDetails['ticket_reference'] }}</span>
-            </div>
-            <div class="info-row">
-                <span class="label">Total Price:</span>
+            <div class="row">
+                <span class="label">Total Price</span>
                 <span class="value">LKR {{ number_format((float) ($bookingDetails['total_price'] ?? 0), 2) }}</span>
             </div>
         </div>
 
-        @if($isOwner)
-            <p style="margin-top: 20px;">
-                <strong>Important:</strong> Please be at <strong>{{ $bookingDetails['onboarding_location'] }}</strong> on time to pick up passengers.
-            </p>
-        @else
-            <p style="margin-top: 20px;">
-                <strong>Travel Note:</strong> Reach <strong>{{ $bookingDetails['onboarding_location'] }}</strong> at least 15 minutes before departure.
-            </p>
-        @endif
-    </div>
-
-    <div class="footer">
-        <p><strong>BookKara</strong> - Your Trusted Travel Partner</p>
-        <p>This is an automated notification. Please do not reply to this email.</p>
+        <div class="ticket-footer">
+            This is an automated ticket email from BookKara.
+        </div>
     </div>
 </body>
 </html>
