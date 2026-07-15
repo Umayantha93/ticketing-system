@@ -6,6 +6,7 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\Bus;
+use App\Models\Destination;
 use App\Models\Schedule;
 use App\Models\Trip;
 use App\Models\TripSeat;
@@ -145,6 +146,14 @@ class BusBookingSeeder extends Seeder
         // 3. Create varied permanent schedules for each bus
         $buses = [$bus1, $bus2, $bus3, $bus4, $bus5, $bus6, $bus7];
         $schedules = [];
+        $destinationMap = collect();
+        Destination::query()->get()->each(function (Destination $destination) use (&$destinationMap) {
+            $destinationMap->put($destination->name_en, $destination);
+
+            foreach ($destination->aliases ?? [] as $alias) {
+                $destinationMap->put((string) $alias, $destination);
+            }
+        });
         $routes = [
             ['Monday', 'Kandy', 'Pettah Bus Stand', '05:40:00', '08:55:00', 1000.00],
             ['Tuesday', 'Pettah Bus Stand', 'Kandy', '13:20:00', '16:35:00', 1260.00],
@@ -176,11 +185,20 @@ class BusBookingSeeder extends Seeder
             }
 
             foreach ($rows as [$dayOfWeek, $origin, $destination, $departureTime, $arrivalTime, $price]) {
+                $originDestination = $destinationMap->get($origin);
+                $targetDestination = $destinationMap->get($destination);
+
+                if (!$originDestination || !$targetDestination) {
+                    continue;
+                }
+
                 $schedules[] = Schedule::create([
                     'bus_id' => $bus->id,
                     'day_of_week' => $dayOfWeek,
-                    'origin' => $origin,
-                    'destination' => $destination,
+                    'origin' => $originDestination->name_en,
+                    'destination' => $targetDestination->name_en,
+                    'origin_destination_id' => $originDestination->id,
+                    'destination_destination_id' => $targetDestination->id,
                     'departure_time' => $departureTime,
                     'estimated_arrival_time' => $arrivalTime,
                     'price' => $price,
@@ -208,12 +226,21 @@ class BusBookingSeeder extends Seeder
             ];
 
             foreach ($dailyCorridor as [$dayOfWeek, $origin, $destination, $departureTime, $arrivalTime, $price]) {
+                $originDestination = $destinationMap->get($origin);
+                $targetDestination = $destinationMap->get($destination);
+
+                if (!$originDestination || !$targetDestination) {
+                    continue;
+                }
+
                 Schedule::updateOrCreate(
                     [
                         'bus_id' => $defaultBus->id,
                         'day_of_week' => $dayOfWeek,
-                        'origin' => $origin,
-                        'destination' => $destination,
+                        'origin' => $originDestination->name_en,
+                        'destination' => $targetDestination->name_en,
+                        'origin_destination_id' => $originDestination->id,
+                        'destination_destination_id' => $targetDestination->id,
                         'departure_time' => $departureTime,
                     ],
                     [

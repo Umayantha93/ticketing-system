@@ -13,9 +13,6 @@ class TripRepository implements TripRepositoryInterface
 {
     public function searchTrips($origin, $destination, $date)
     {
-        $origin = $this->normalizeLocationName($origin);
-        $destination = $this->normalizeLocationName($destination);
-
         $targetDate = Carbon::parse($date)->format('Y-m-d');
         $dayOfWeek = Carbon::parse($targetDate)->format('l');
 
@@ -64,8 +61,10 @@ class TripRepository implements TripRepositoryInterface
         return Schedule::updateOrCreate(
             [
                 'bus_id' => $data['bus_id'],
-                'origin' => $this->normalizeLocationName($data['origin']),
-                'destination' => $this->normalizeLocationName($data['destination']),
+                'origin' => $data['origin'],
+                'destination' => $data['destination'],
+                'origin_destination_id' => $data['origin_destination_id'] ?? null,
+                'destination_destination_id' => $data['destination_destination_id'] ?? null,
                 'day_of_week' => $data['day_of_week'],
                 'departure_time' => $data['departure_time'],
             ],
@@ -170,15 +169,5 @@ class TripRepository implements TripRepositoryInterface
         } while ($position >= 0);
 
         return $label;
-    }
-
-    private function normalizeLocationName(string $location): string
-    {
-        return match ($location) {
-            'Colombo' => 'Pettah Bus Stand',
-            'Kurunegala' => 'Kurunagala',
-            'Nuwara Eliya' => 'Nuwaraeliya',
-            default => $location,
-        };
     }
 }

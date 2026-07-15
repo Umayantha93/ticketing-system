@@ -15,6 +15,7 @@ use App\Http\Controllers\TicketController;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/auth/google', [AuthController::class, 'googleSignIn']);
+Route::get('/trips/locations', [TripController::class, 'locations']);
 Route::get('/trips', [TripController::class, 'index']);
 Route::get('/trips/{id}', [TripController::class, 'show']);
 

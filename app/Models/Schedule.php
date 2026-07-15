@@ -13,7 +13,14 @@ class Schedule extends Model
         'estimated_arrival_time',
         'origin',
         'destination',
+        'origin_destination_id',
+        'destination_destination_id',
         'price',
+    ];
+
+    protected $casts = [
+        'origin_destination_id' => 'integer',
+        'destination_destination_id' => 'integer',
     ];
 
     public function bus()
@@ -24,5 +31,15 @@ class Schedule extends Model
     public function trips()
     {
         return $this->hasMany(Trip::class);
+    }
+
+    public function originDestination()
+    {
+        return $this->belongsTo(Destination::class, 'origin_destination_id');
+    }
+
+    public function destinationDestination()
+    {
+        return $this->belongsTo(Destination::class, 'destination_destination_id');
     }
 }

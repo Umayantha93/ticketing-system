@@ -5,24 +5,12 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Repositories\Contracts\TripRepositoryInterface;
 use App\Models\Bus;
+use App\Models\Destination;
+use App\Models\Schedule;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 class TripController extends Controller
 {
-    private const ALLOWED_LOCATIONS = [
-        'Kandy',
-        'Pettah Bus Stand',
-        'Kurunagala',
-        'Matale',
-        'Nuwaraeliya',
-    ];
-
-    private const LOCATION_ALIASES = [
-        'Colombo' => 'Pettah Bus Stand',
-        'Kurunegala' => 'Kurunagala',
-        'Nuwara Eliya' => 'Nuwaraeliya',
-    ];
-
     protected $tripRepo;
 
     public function __construct(TripRepositoryInterface $tripRepo)
@@ -38,20 +26,31 @@ class TripController extends Controller
             'date' => 'required|date',
         ]);
 
-        $origin = $this->normalizeLocationName($request->origin);
-        $destination = $this->normalizeLocationName($request->destination);
+        $originDestination = $this->resolveDestination($request->origin);
+        $targetDestination = $this->resolveDestination($request->destination);
 
-        if (!in_array($origin, self::ALLOWED_LOCATIONS, true) || !in_array($destination, self::ALLOWED_LOCATIONS, true)) {
+        $originCanonical = $originDestination?->name_en ?? trim((string) $request->origin);
+        $destinationCanonical = $targetDestination?->name_en ?? trim((string) $request->destination);
+
+        if (!$this->isKnownSearchLocation((string) $request->origin, $originCanonical) ||
+            !$this->isKnownSearchLocation((string) $request->destination, $destinationCanonical)) {
             return response()->json([
                 'message' => 'Invalid route selected.',
-                'allowed_locations' => self::ALLOWED_LOCATIONS,
+                'allowed_locations' => $this->getAvailableLocations(),
             ], 422);
         }
 
         $date = Carbon::parse($request->date)->format('Y-m-d');
 
-        $trips = $this->tripRepo->searchTrips($origin, $destination, $date);
+        $trips = $this->tripRepo->searchTrips($originCanonical, $destinationCanonical, $date);
         return response()->json($trips);
+    }
+
+    public function locations()
+    {
+        return response()->json([
+            'locations' => $this->getAvailableLocations(),
+        ]);
     }
 
     public function show($tripId)
@@ -64,23 +63,18 @@ class TripController extends Controller
     {
         $fields = $request->validate([
             'bus_id' => 'required|exists:buses,id',
-            'origin' => 'required|string',
-            'destination' => 'required|string',
+            'origin_destination_id' => 'required|exists:destinations,id',
+            'destination_destination_id' => 'required|exists:destinations,id|different:origin_destination_id',
             'day_of_week' => 'required|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
             'departure_time' => 'required|date_format:H:i',
             'estimated_arrival_time' => 'required|date_format:H:i|after:departure_time',
             'price' => 'required|numeric|min:1',
         ]);
 
-        $fields['origin'] = $this->normalizeLocationName($fields['origin']);
-        $fields['destination'] = $this->normalizeLocationName($fields['destination']);
-
-        if (!in_array($fields['origin'], self::ALLOWED_LOCATIONS, true) || !in_array($fields['destination'], self::ALLOWED_LOCATIONS, true)) {
-            return response()->json([
-                'message' => 'Invalid route selected.',
-                'allowed_locations' => self::ALLOWED_LOCATIONS,
-            ], 422);
-        }
+        $originDestination = Destination::findOrFail((int) $fields['origin_destination_id']);
+        $targetDestination = Destination::findOrFail((int) $fields['destination_destination_id']);
+        $fields['origin'] = $originDestination->name_en;
+        $fields['destination'] = $targetDestination->name_en;
 
         $bus = Bus::findOrFail($fields['bus_id']);
         $authUserId = Auth::id();
@@ -92,10 +86,48 @@ class TripController extends Controller
         return response()->json(['message' => 'Schedule created successfully', 'schedule' => $schedule], 201);
     }
 
-    private function normalizeLocationName(string $location): string
+    private function getAvailableLocations(): array
     {
-        $trimmed = trim($location);
+        return Destination::query()
+            ->orderBy('name_en')
+            ->get(['id', 'district_code', 'name_en', 'name_si', 'name_ta', 'aliases'])
+            ->map(fn (Destination $destination) => [
+                'id' => $destination->id,
+                'district_code' => $destination->district_code,
+                'name_en' => $destination->name_en,
+                'name_si' => $destination->name_si,
+                'name_ta' => $destination->name_ta,
+                'aliases' => $destination->aliases ?? [],
+            ])
+            ->values()
+            ->all();
+    }
 
-        return self::LOCATION_ALIASES[$trimmed] ?? $trimmed;
+    private function resolveDestination(string $value): ?Destination
+    {
+        $trimmed = trim($value);
+
+        if ($trimmed === '') {
+            return null;
+        }
+
+        return Destination::query()
+            ->searchByAnyLanguage($trimmed)
+            ->orderByRaw('LOWER(name_en) = ? DESC', [mb_strtolower($trimmed)])
+            ->first();
+    }
+
+    private function isKnownSearchLocation(string $input, string $canonical): bool
+    {
+        if (Destination::query()->searchByAnyLanguage($input)->exists()) {
+            return true;
+        }
+
+        return Schedule::query()
+            ->whereHas('bus', fn ($query) => $query->approvedAndActive())
+            ->where(function ($query) use ($canonical) {
+                $query->where('origin', $canonical)->orWhere('destination', $canonical);
+            })
+            ->exists();
     }
 }
