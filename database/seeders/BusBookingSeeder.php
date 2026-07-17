@@ -11,6 +11,7 @@ use App\Models\Schedule;
 use App\Models\Trip;
 use App\Models\TripSeat;
 use App\Models\Booking;
+use App\Models\Payment;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
@@ -19,6 +20,7 @@ class BusBookingSeeder extends Seeder
 {
     private const SERVICE_CHARGE_RATE = 0.20;
     private const OTHER_CHARGE_RATE = 0.06;
+    private const CUSTOMER_CHARGE_MULTIPLIER = 1.26;
 
     public function run(): void
     {
@@ -277,11 +279,17 @@ class BusBookingSeeder extends Seeder
             ->filter(fn (User $user) => $user->role === 'passenger')
             ->values();
         $trips = Trip::with('schedule')->orderBy('id')->take(18)->get();
+        $totalTripSamples = max(1, $trips->count());
 
         foreach ($trips as $index => $trip) {
             if ($passengers->isEmpty() || !$trip->schedule) {
                 continue;
             }
+
+            // Distribute seeded financial records across the last ~2 months.
+            $progress = $totalTripSamples > 1 ? ($index / ($totalTripSamples - 1)) : 1;
+            $daysBack = (int) round(59 * (1 - $progress));
+            $paymentTimestamp = now()->subDays($daysBack)->setTime(10 + ($index % 8), 15, 0);
 
             $passenger = $passengers[$index % $passengers->count()];
             $seatCount = ($index % 3) + 1; // 1 to 3 seats per booking
@@ -315,6 +323,33 @@ class BusBookingSeeder extends Seeder
                 'status' => 'confirmed',
                 'payment_method' => 'card',
                 'payment_status' => 'paid',
+                'created_at' => $paymentTimestamp,
+                'updated_at' => $paymentTimestamp,
+            ]);
+
+            $paymentBreakdown = $this->buildPaymentBreakdown((float) $booking->total_price);
+
+            Payment::create([
+                'booking_id' => $booking->id,
+                'user_id' => $passenger->id,
+                'trip_id' => $trip->id,
+                'payment_reference' => 'PAY-' . strtoupper(Str::random(10)),
+                'method' => 'card',
+                'status' => 'paid',
+                'gross_amount' => $paymentBreakdown['gross_amount'],
+                'base_fare_amount' => $paymentBreakdown['base_fare_amount'],
+                'service_charge_amount' => $paymentBreakdown['service_charge_amount'],
+                'other_charge_amount' => $paymentBreakdown['other_charge_amount'],
+                'owner_payout_amount' => $paymentBreakdown['owner_payout_amount'],
+                'admin_service_amount' => $paymentBreakdown['admin_service_amount'],
+                'admin_other_amount' => $paymentBreakdown['admin_other_amount'],
+                'admin_profit_amount' => $paymentBreakdown['admin_profit_amount'],
+                'paid_at' => $paymentTimestamp,
+                'meta' => [
+                    'seeded' => true,
+                ],
+                'created_at' => $paymentTimestamp,
+                'updated_at' => $paymentTimestamp,
             ]);
 
             $booking->seats()->attach($selectedSeatIds->all());
@@ -367,5 +402,34 @@ class BusBookingSeeder extends Seeder
         }
 
         return $seatNumbers;
+    }
+
+    private function buildPaymentBreakdown(float $grossAmount): array
+    {
+        $baseFare = round($grossAmount / self::CUSTOMER_CHARGE_MULTIPLIER, 2);
+        $serviceCharge = round($baseFare * self::SERVICE_CHARGE_RATE, 2);
+        $otherCharge = round($baseFare * self::OTHER_CHARGE_RATE, 2);
+
+        $ownerPayout = round($baseFare + ($serviceCharge / 2), 2);
+        $adminService = round($serviceCharge / 2, 2);
+        $adminOther = round($otherCharge, 2);
+        $adminProfit = round($adminService + $adminOther, 2);
+
+        $roundingDifference = round($grossAmount - ($ownerPayout + $adminProfit), 2);
+        if ($roundingDifference !== 0.0) {
+            $adminOther = round($adminOther + $roundingDifference, 2);
+            $adminProfit = round($adminService + $adminOther, 2);
+        }
+
+        return [
+            'gross_amount' => round($grossAmount, 2),
+            'base_fare_amount' => $baseFare,
+            'service_charge_amount' => $serviceCharge,
+            'other_charge_amount' => $otherCharge,
+            'owner_payout_amount' => $ownerPayout,
+            'admin_service_amount' => $adminService,
+            'admin_other_amount' => $adminOther,
+            'admin_profit_amount' => $adminProfit,
+        ];
     }
 }

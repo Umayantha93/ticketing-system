@@ -29,4 +29,9 @@ class Booking extends Model
     {
         return $this->belongsToMany(TripSeat::class, 'booking_seat');
     }
+
+    public function payment()
+    {
+        return $this->hasOne(Payment::class);
+    }
 }

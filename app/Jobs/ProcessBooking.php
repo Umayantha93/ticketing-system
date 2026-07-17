@@ -10,6 +10,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use App\Models\Booking;
+use App\Models\Payment;
 use App\Models\Trip;
 use App\Models\User;
 use Illuminate\Support\Str;
@@ -28,6 +29,9 @@ class ProcessBooking implements ShouldQueue
 
     private const TICKET_REFERENCE_PREFIX = 'TKT-';
     private const TICKET_REFERENCE_LENGTH = 8;
+    private const PAYMENT_REFERENCE_PREFIX = 'PAY-';
+    private const PAYMENT_REFERENCE_LENGTH = 10;
+    private const CUSTOMER_CHARGE_MULTIPLIER = 1.26;
 
     public function __construct($userId, $tripId, $seatIds, $totalPrice, $onboardingLocation = null)
     {
@@ -64,6 +68,26 @@ class ProcessBooking implements ShouldQueue
                 'total_price' => $this->totalPrice,
                 'onboarding_location' => $this->onboardingLocation,
                 'payment_status' => 'paid',
+            ]);
+
+            $paymentBreakdown = $this->buildPaymentBreakdown((float) $booking->total_price);
+
+            Payment::create([
+                'booking_id' => $booking->id,
+                'user_id' => $this->userId,
+                'trip_id' => $this->tripId,
+                'payment_reference' => $this->generatePaymentReference(),
+                'method' => 'card',
+                'status' => 'paid',
+                'gross_amount' => $paymentBreakdown['gross_amount'],
+                'base_fare_amount' => $paymentBreakdown['base_fare_amount'],
+                'service_charge_amount' => $paymentBreakdown['service_charge_amount'],
+                'other_charge_amount' => $paymentBreakdown['other_charge_amount'],
+                'owner_payout_amount' => $paymentBreakdown['owner_payout_amount'],
+                'admin_service_amount' => $paymentBreakdown['admin_service_amount'],
+                'admin_other_amount' => $paymentBreakdown['admin_other_amount'],
+                'admin_profit_amount' => $paymentBreakdown['admin_profit_amount'],
+                'paid_at' => now(),
             ]);
 
             foreach ($seats as $seat) {
@@ -123,5 +147,43 @@ class ProcessBooking implements ShouldQueue
         } while (Booking::where('ticket_reference', $reference)->exists());
 
         return $reference;
+    }
+
+    private function generatePaymentReference(): string
+    {
+        do {
+            $reference = self::PAYMENT_REFERENCE_PREFIX . strtoupper(Str::random(self::PAYMENT_REFERENCE_LENGTH));
+        } while (Payment::where('payment_reference', $reference)->exists());
+
+        return $reference;
+    }
+
+    private function buildPaymentBreakdown(float $grossAmount): array
+    {
+        $baseFare = round($grossAmount / self::CUSTOMER_CHARGE_MULTIPLIER, 2);
+        $serviceCharge = round($baseFare * 0.20, 2);
+        $otherCharge = round($baseFare * 0.06, 2);
+
+        $ownerPayout = round($baseFare + ($serviceCharge / 2), 2);
+        $adminService = round($serviceCharge / 2, 2);
+        $adminOther = round($otherCharge, 2);
+        $adminProfit = round($adminService + $adminOther, 2);
+
+        $roundingDifference = round($grossAmount - ($ownerPayout + $adminProfit), 2);
+        if ($roundingDifference !== 0.0) {
+            $adminOther = round($adminOther + $roundingDifference, 2);
+            $adminProfit = round($adminService + $adminOther, 2);
+        }
+
+        return [
+            'gross_amount' => round($grossAmount, 2),
+            'base_fare_amount' => $baseFare,
+            'service_charge_amount' => $serviceCharge,
+            'other_charge_amount' => $otherCharge,
+            'owner_payout_amount' => $ownerPayout,
+            'admin_service_amount' => $adminService,
+            'admin_other_amount' => $adminOther,
+            'admin_profit_amount' => $adminProfit,
+        ];
     }
 }

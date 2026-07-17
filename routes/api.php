@@ -47,6 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Admin only endpoints
     Route::middleware('role:admin')->prefix('admin')->group(function () {
         Route::get('/stats', [AdminController::class, 'stats']);
+        Route::get('/ledger', [AdminController::class, 'ledger']);
         Route::get('/bookings', [AdminController::class, 'allBookings']);
         Route::get('/users', [AdminController::class, 'allUsers']);
         Route::get('/buses', [AdminController::class, 'allBuses']);
