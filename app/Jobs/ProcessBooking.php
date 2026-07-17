@@ -72,11 +72,15 @@ class ProcessBooking implements ShouldQueue
 
             $paymentBreakdown = $this->buildPaymentBreakdown((float) $booking->total_price);
 
-            Payment::create([
-                'booking_id' => $booking->id,
+            $payment = Payment::firstOrNew(['booking_id' => $booking->id]);
+
+            if (!$payment->exists) {
+                $payment->payment_reference = $this->generatePaymentReference();
+            }
+
+            $payment->fill([
                 'user_id' => $this->userId,
                 'trip_id' => $this->tripId,
-                'payment_reference' => $this->generatePaymentReference(),
                 'method' => 'card',
                 'status' => 'paid',
                 'gross_amount' => $paymentBreakdown['gross_amount'],
@@ -89,6 +93,8 @@ class ProcessBooking implements ShouldQueue
                 'admin_profit_amount' => $paymentBreakdown['admin_profit_amount'],
                 'paid_at' => now(),
             ]);
+
+            $payment->save();
 
             foreach ($seats as $seat) {
                 $seat->update(['status' => 'booked']);
