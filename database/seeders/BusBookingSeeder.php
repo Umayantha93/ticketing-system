@@ -17,7 +17,8 @@ use Carbon\Carbon;
 
 class BusBookingSeeder extends Seeder
 {
-    private const SERVICE_CHARGE = 400;
+    private const SERVICE_CHARGE_RATE = 0.20;
+    private const OTHER_CHARGE_RATE = 0.06;
 
     public function run(): void
     {
@@ -299,12 +300,17 @@ class BusBookingSeeder extends Seeder
             $selectedSeatIds = $availableSeats->map(fn (TripSeat $seat) => $seat->id);
             $selectedSeatCount = $selectedSeatIds->count();
 
+            $basePrice = (float) $trip->schedule->price;
+            $pricePerSeat = $basePrice
+                + ($basePrice * self::SERVICE_CHARGE_RATE)
+                + ($basePrice * self::OTHER_CHARGE_RATE);
+
             $booking = Booking::create([
                 'user_id' => $passenger->id,
                 'trip_id' => $trip->id,
                 'ticket_reference' => 'TKT-' . strtoupper(Str::random(10)),
                 'ticket_count' => $selectedSeatCount,
-                'total_price' => ((float) $trip->schedule->price + self::SERVICE_CHARGE) * $selectedSeatCount,
+                'total_price' => round($pricePerSeat * $selectedSeatCount, 2),
                 'onboarding_location' => $trip->schedule->origin . ' Main Stand',
                 'status' => 'confirmed',
                 'payment_method' => 'card',

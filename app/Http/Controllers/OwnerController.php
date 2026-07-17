@@ -10,6 +10,10 @@ use App\Models\Schedule;
 
 class OwnerController extends Controller
 {
+    private const SERVICE_CHARGE_RATE = 0.20;
+    private const OTHER_CHARGE_RATE = 0.06;
+    private const CUSTOMER_CHARGE_MULTIPLIER = 1 + self::SERVICE_CHARGE_RATE + self::OTHER_CHARGE_RATE;
+
     public function stats()
     {
         $user    = auth()->user();
@@ -18,7 +22,8 @@ class OwnerController extends Controller
 
         $totalTrips    = $tripIds->count();
         $totalBookings = Booking::whereIn('trip_id', $tripIds)->where('payment_status', 'paid')->count();
-        $totalRevenue  = (float) Booking::whereIn('trip_id', $tripIds)->where('payment_status', 'paid')->sum('total_price');
+        $grossRevenue  = (float) Booking::whereIn('trip_id', $tripIds)->where('payment_status', 'paid')->sum('total_price');
+        $totalRevenue = round($this->calculateBusOwnerIncome($this->deriveBaseFare($grossRevenue)), 2);
 
         $monthlyIncome = Booking::whereIn('trip_id', $tripIds)
             ->where('payment_status', 'paid')
@@ -28,8 +33,9 @@ class OwnerController extends Controller
             ->orderByRaw("DATE_FORMAT(created_at, '%Y-%m')")
             ->get()
             ->map(function($item) {
+                $ownerIncome = $this->calculateBusOwnerIncome($this->deriveBaseFare((float) $item->total));
                 $item->month = \Carbon\Carbon::createFromFormat('Y-m', $item->period_key)->format('M');
-                $item->total = (float) $item->total;
+                $item->total = round($ownerIncome, 2);
                 unset($item->period_key);
                 return $item;
             });
@@ -42,8 +48,9 @@ class OwnerController extends Controller
             ->orderByRaw("WEEK(created_at, 1)")
             ->get()
             ->map(function($item, $index) {
+                $ownerIncome = $this->calculateBusOwnerIncome($this->deriveBaseFare((float) $item->total));
                 $item->week = 'Week ' . ($index + 1);
-                $item->total = (float) $item->total;
+                $item->total = round($ownerIncome, 2);
                 unset($item->week_num);
                 return $item;
             });
@@ -53,7 +60,15 @@ class OwnerController extends Controller
             ->where('payment_status', 'paid')
             ->latest()
             ->take(10)
-            ->get();
+            ->get()
+            ->map(function (Booking $booking) {
+                $booking->total_price = round(
+                    $this->calculateBusOwnerIncome($this->deriveBaseFare((float) $booking->total_price)),
+                    2
+                );
+
+                return $booking;
+            });
 
         $buses = Bus::where('user_id', $user->id)->get();
 
@@ -61,6 +76,7 @@ class OwnerController extends Controller
             'total_trips'    => $totalTrips,
             'total_bookings' => $totalBookings,
             'total_revenue'  => $totalRevenue,
+            'gross_revenue'  => round($grossRevenue, 2),
             'weekly_income'  => $weeklyIncome,
             'monthly_income' => $monthlyIncome,
             'recent_bookings'=> $recentBookings,
@@ -88,9 +104,31 @@ class OwnerController extends Controller
         $bookings = Booking::whereIn('trip_id', $tripIds)
             ->with('passenger', 'trip.schedule.bus', 'seats')
             ->latest()
-            ->get();
+            ->get()
+            ->map(function (Booking $booking) {
+                $booking->total_price = round(
+                    $this->calculateBusOwnerIncome($this->deriveBaseFare((float) $booking->total_price)),
+                    2
+                );
+
+                return $booking;
+            });
 
         return response()->json($bookings);
+    }
+
+    private function deriveBaseFare(float $grossAmount): float
+    {
+        if ($grossAmount <= 0) {
+            return 0;
+        }
+
+        return $grossAmount / self::CUSTOMER_CHARGE_MULTIPLIER;
+    }
+
+    private function calculateBusOwnerIncome(float $baseFare): float
+    {
+        return $baseFare * (1 + (self::SERVICE_CHARGE_RATE / 2));
     }
 
     public function buses()
