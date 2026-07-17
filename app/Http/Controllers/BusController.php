@@ -21,7 +21,7 @@ class BusController extends Controller
             'phone_number' => 'required|string|max:20',
             'model' => 'required|string',
             'total_seats' => 'required|integer|min:1',
-            'layout_type' => 'required|in:2x2,2x1',
+            'layout_type' => 'required|in:1x2,2x2,1x3,2x3',
             'last_row_seats' => 'required|integer|between:1,8',
         ]);
 
@@ -55,7 +55,7 @@ class BusController extends Controller
             'phone_number' => 'sometimes|string|max:20',
             'model' => 'sometimes|string',
             'total_seats' => 'sometimes|integer|min:1',
-            'layout_type' => 'sometimes|in:2x2,2x1',
+            'layout_type' => 'sometimes|in:1x2,2x2,1x3,2x3',
             'last_row_seats' => 'sometimes|integer|between:1,8',
             'status' => 'sometimes|in:active,inactive',
         ]);

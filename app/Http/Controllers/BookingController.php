@@ -9,7 +9,8 @@ use App\Models\Booking;
 
 class BookingController extends Controller
 {
-    private const SERVICE_CHARGE = 400;
+    private const SERVICE_CHARGE_RATE = 0.20;
+    private const OTHER_CHARGE_RATE = 0.06;
 
     protected $bookingRepo;
 
@@ -29,8 +30,11 @@ class BookingController extends Controller
 
         $trip = $this->bookingRepo->getTripPriceAndSeats($request->trip_id);
         $seatCount = count($request->seat_ids);
-        $pricePerSeat = (float) $trip->schedule->price + self::SERVICE_CHARGE;
-        $totalPrice = $pricePerSeat * $seatCount;
+        $basePricePerSeat = (float) $trip->schedule->price;
+        $serviceChargePerSeat = $basePricePerSeat * self::SERVICE_CHARGE_RATE;
+        $otherChargePerSeat = $basePricePerSeat * self::OTHER_CHARGE_RATE;
+        $pricePerSeat = $basePricePerSeat + $serviceChargePerSeat + $otherChargePerSeat;
+        $totalPrice = round($pricePerSeat * $seatCount, 2);
 
         ProcessBooking::dispatchSync(
             auth()->id(),

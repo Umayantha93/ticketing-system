@@ -6,17 +6,21 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\Bus;
+use App\Models\Destination;
 use App\Models\Schedule;
 use App\Models\Trip;
 use App\Models\TripSeat;
 use App\Models\Booking;
+use App\Models\Payment;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class BusBookingSeeder extends Seeder
 {
-    private const SERVICE_CHARGE = 400;
+    private const SERVICE_CHARGE_RATE = 0.20;
+    private const OTHER_CHARGE_RATE = 0.06;
+    private const CUSTOMER_CHARGE_MULTIPLIER = 1.26;
 
     public function run(): void
     {
@@ -79,7 +83,7 @@ class BusBookingSeeder extends Seeder
             'phone_number' => '0774445556',
             'model' => 'Mercedes-Benz A/C',
             'total_seats' => 14,
-            'layout_type' => '2x1',
+            'layout_type' => '1x2',
             'last_row_seats' => 5,
             'status' => 'active',
             'approval_status' => 'approved',
@@ -113,7 +117,7 @@ class BusBookingSeeder extends Seeder
             'phone_number' => '0775556667',
             'model' => 'Ashok Leyland A/C',
             'total_seats' => 11,
-            'layout_type' => '2x1',
+            'layout_type' => '1x3',
             'last_row_seats' => 5,
             'status' => 'active',
             'approval_status' => 'approved',
@@ -136,7 +140,7 @@ class BusBookingSeeder extends Seeder
             'phone_number' => '0776667778',
             'model' => 'MAN Express',
             'total_seats' => 12,
-            'layout_type' => '2x1',
+            'layout_type' => '2x3',
             'last_row_seats' => 4,
             'status' => 'active',
             'approval_status' => 'approved',
@@ -145,6 +149,14 @@ class BusBookingSeeder extends Seeder
         // 3. Create varied permanent schedules for each bus
         $buses = [$bus1, $bus2, $bus3, $bus4, $bus5, $bus6, $bus7];
         $schedules = [];
+        $destinationMap = collect();
+        Destination::query()->get()->each(function (Destination $destination) use (&$destinationMap) {
+            $destinationMap->put($destination->name_en, $destination);
+
+            foreach ($destination->aliases ?? [] as $alias) {
+                $destinationMap->put((string) $alias, $destination);
+            }
+        });
         $routes = [
             ['Monday', 'Kandy', 'Pettah Bus Stand', '05:40:00', '08:55:00', 1000.00],
             ['Tuesday', 'Pettah Bus Stand', 'Kandy', '13:20:00', '16:35:00', 1260.00],
@@ -176,11 +188,20 @@ class BusBookingSeeder extends Seeder
             }
 
             foreach ($rows as [$dayOfWeek, $origin, $destination, $departureTime, $arrivalTime, $price]) {
+                $originDestination = $destinationMap->get($origin);
+                $targetDestination = $destinationMap->get($destination);
+
+                if (!$originDestination || !$targetDestination) {
+                    continue;
+                }
+
                 $schedules[] = Schedule::create([
                     'bus_id' => $bus->id,
                     'day_of_week' => $dayOfWeek,
-                    'origin' => $origin,
-                    'destination' => $destination,
+                    'origin' => $originDestination->name_en,
+                    'destination' => $targetDestination->name_en,
+                    'origin_destination_id' => $originDestination->id,
+                    'destination_destination_id' => $targetDestination->id,
                     'departure_time' => $departureTime,
                     'estimated_arrival_time' => $arrivalTime,
                     'price' => $price,
@@ -208,12 +229,21 @@ class BusBookingSeeder extends Seeder
             ];
 
             foreach ($dailyCorridor as [$dayOfWeek, $origin, $destination, $departureTime, $arrivalTime, $price]) {
+                $originDestination = $destinationMap->get($origin);
+                $targetDestination = $destinationMap->get($destination);
+
+                if (!$originDestination || !$targetDestination) {
+                    continue;
+                }
+
                 Schedule::updateOrCreate(
                     [
                         'bus_id' => $defaultBus->id,
                         'day_of_week' => $dayOfWeek,
-                        'origin' => $origin,
-                        'destination' => $destination,
+                        'origin' => $originDestination->name_en,
+                        'destination' => $targetDestination->name_en,
+                        'origin_destination_id' => $originDestination->id,
+                        'destination_destination_id' => $targetDestination->id,
                         'departure_time' => $departureTime,
                     ],
                     [
@@ -249,11 +279,17 @@ class BusBookingSeeder extends Seeder
             ->filter(fn (User $user) => $user->role === 'passenger')
             ->values();
         $trips = Trip::with('schedule')->orderBy('id')->take(18)->get();
+        $totalTripSamples = max(1, $trips->count());
 
         foreach ($trips as $index => $trip) {
             if ($passengers->isEmpty() || !$trip->schedule) {
                 continue;
             }
+
+            // Distribute seeded financial records across the last ~2 months.
+            $progress = $totalTripSamples > 1 ? ($index / ($totalTripSamples - 1)) : 1;
+            $daysBack = (int) round(59 * (1 - $progress));
+            $paymentTimestamp = now()->subDays($daysBack)->setTime(10 + ($index % 8), 15, 0);
 
             $passenger = $passengers[$index % $passengers->count()];
             $seatCount = ($index % 3) + 1; // 1 to 3 seats per booking
@@ -272,16 +308,48 @@ class BusBookingSeeder extends Seeder
             $selectedSeatIds = $availableSeats->map(fn (TripSeat $seat) => $seat->id);
             $selectedSeatCount = $selectedSeatIds->count();
 
+            $basePrice = (float) $trip->schedule->price;
+            $pricePerSeat = $basePrice
+                + ($basePrice * self::SERVICE_CHARGE_RATE)
+                + ($basePrice * self::OTHER_CHARGE_RATE);
+
             $booking = Booking::create([
                 'user_id' => $passenger->id,
                 'trip_id' => $trip->id,
                 'ticket_reference' => 'TKT-' . strtoupper(Str::random(10)),
                 'ticket_count' => $selectedSeatCount,
-                'total_price' => ((float) $trip->schedule->price + self::SERVICE_CHARGE) * $selectedSeatCount,
+                'total_price' => round($pricePerSeat * $selectedSeatCount, 2),
                 'onboarding_location' => $trip->schedule->origin . ' Main Stand',
                 'status' => 'confirmed',
                 'payment_method' => 'card',
                 'payment_status' => 'paid',
+                'created_at' => $paymentTimestamp,
+                'updated_at' => $paymentTimestamp,
+            ]);
+
+            $paymentBreakdown = $this->buildPaymentBreakdown((float) $booking->total_price);
+
+            Payment::create([
+                'booking_id' => $booking->id,
+                'user_id' => $passenger->id,
+                'trip_id' => $trip->id,
+                'payment_reference' => 'PAY-' . strtoupper(Str::random(10)),
+                'method' => 'card',
+                'status' => 'paid',
+                'gross_amount' => $paymentBreakdown['gross_amount'],
+                'base_fare_amount' => $paymentBreakdown['base_fare_amount'],
+                'service_charge_amount' => $paymentBreakdown['service_charge_amount'],
+                'other_charge_amount' => $paymentBreakdown['other_charge_amount'],
+                'owner_payout_amount' => $paymentBreakdown['owner_payout_amount'],
+                'admin_service_amount' => $paymentBreakdown['admin_service_amount'],
+                'admin_other_amount' => $paymentBreakdown['admin_other_amount'],
+                'admin_profit_amount' => $paymentBreakdown['admin_profit_amount'],
+                'paid_at' => $paymentTimestamp,
+                'meta' => [
+                    'seeded' => true,
+                ],
+                'created_at' => $paymentTimestamp,
+                'updated_at' => $paymentTimestamp,
             ]);
 
             $booking->seats()->attach($selectedSeatIds->all());
@@ -307,7 +375,8 @@ class BusBookingSeeder extends Seeder
     private function buildSeatNumbers(Bus $bus): array
     {
         $seatNumbers = [];
-        $standardRowCapacity = $bus->layout_type === '2x1' ? 3 : 4;
+        [$left, $right] = array_pad(explode('x', $bus->layout_type), 2, '0');
+        $standardRowCapacity = max(1, ((int) $left) + ((int) $right));
         $rearRowSeats = min(max(1, (int) $bus->last_row_seats), (int) $bus->total_seats);
         $frontSectionSeats = (int) $bus->total_seats - $rearRowSeats;
         $rowCounts = [];
@@ -333,5 +402,34 @@ class BusBookingSeeder extends Seeder
         }
 
         return $seatNumbers;
+    }
+
+    private function buildPaymentBreakdown(float $grossAmount): array
+    {
+        $baseFare = round($grossAmount / self::CUSTOMER_CHARGE_MULTIPLIER, 2);
+        $serviceCharge = round($baseFare * self::SERVICE_CHARGE_RATE, 2);
+        $otherCharge = round($baseFare * self::OTHER_CHARGE_RATE, 2);
+
+        $ownerPayout = round($baseFare + ($serviceCharge / 2), 2);
+        $adminService = round($serviceCharge / 2, 2);
+        $adminOther = round($otherCharge, 2);
+        $adminProfit = round($adminService + $adminOther, 2);
+
+        $roundingDifference = round($grossAmount - ($ownerPayout + $adminProfit), 2);
+        if ($roundingDifference !== 0.0) {
+            $adminOther = round($adminOther + $roundingDifference, 2);
+            $adminProfit = round($adminService + $adminOther, 2);
+        }
+
+        return [
+            'gross_amount' => round($grossAmount, 2),
+            'base_fare_amount' => $baseFare,
+            'service_charge_amount' => $serviceCharge,
+            'other_charge_amount' => $otherCharge,
+            'owner_payout_amount' => $ownerPayout,
+            'admin_service_amount' => $adminService,
+            'admin_other_amount' => $adminOther,
+            'admin_profit_amount' => $adminProfit,
+        ];
     }
 }

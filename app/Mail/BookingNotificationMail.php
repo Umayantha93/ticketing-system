@@ -31,9 +31,11 @@ class BookingNotificationMail extends Mailable
      */
     public function envelope(): Envelope
     {
+        $ticketReference = (string) ($this->bookingDetails['ticket_reference'] ?? 'N/A');
+
         $subject = $this->recipientType === 'owner'
-            ? 'New Booking Alert - Passenger Ticket Issued'
-            : 'Your BookKara Ticket Confirmation';
+            ? "New Booking Ticket - {$ticketReference}"
+            : "Your BookKara Ticket - {$ticketReference}";
 
         return new Envelope(
             subject: $subject,

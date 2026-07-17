@@ -15,6 +15,7 @@ use App\Http\Controllers\TicketController;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/auth/google', [AuthController::class, 'googleSignIn']);
+Route::get('/trips/locations', [TripController::class, 'locations']);
 Route::get('/trips', [TripController::class, 'index']);
 Route::get('/trips/{id}', [TripController::class, 'show']);
 
@@ -46,6 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Admin only endpoints
     Route::middleware('role:admin')->prefix('admin')->group(function () {
         Route::get('/stats', [AdminController::class, 'stats']);
+        Route::get('/ledger', [AdminController::class, 'ledger']);
         Route::get('/bookings', [AdminController::class, 'allBookings']);
         Route::get('/users', [AdminController::class, 'allUsers']);
         Route::get('/buses', [AdminController::class, 'allBuses']);
