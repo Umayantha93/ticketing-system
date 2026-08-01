@@ -42,18 +42,16 @@ No Policies, Form Requests, or API Resources in the current codebase.
 - Google: verify `id_token` against Google tokeninfo using `GOOGLE_CLIENT_ID`.
 - Client sends `Authorization: Bearer {token}`.
 
-## Booking transaction (`ProcessBooking`)
+## Booking transaction
 
-Inside a DB transaction:
+Live path uses `BookingPaymentService`:
 
-1. Lock selected `trip_seats`.
-2. Fail if any seat is not `available`.
-3. Create `bookings` row (`payment_status=paid`, generate `ticket_reference`).
-4. Create `payments` row (card, paid) with fee breakdown.
-5. Mark seats `booked` and attach `booking_seat` pivot.
-6. Queue/send booking notification emails.
+1. **Initiate** (`POST /bookings`): lock seats → `reserved`, pending booking/payment, return PayHere checkout hash.
+2. **Notify** (`POST /payments/payhere/notify`): verify `md5sig` → seats `booked`, payment `paid`, emails.
+3. **Cancel / expire**: release reserved seats back to `available`.
 
-There is **no** external payment provider — success is assumed when the booking job completes.
+Legacy `ProcessBooking` job (immediate paid) is deprecated and unused by the HTTP API.
+
 
 ## Repository usage
 

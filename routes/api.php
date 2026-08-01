@@ -9,6 +9,7 @@ use App\Http\Controllers\BusController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\OwnerController;
 use App\Http\Controllers\TicketController;
+use App\Http\Controllers\PayHereController;
 
 
 // Public Endpoints
@@ -18,6 +19,9 @@ Route::post('/auth/google', [AuthController::class, 'googleSignIn']);
 Route::get('/trips/locations', [TripController::class, 'locations']);
 Route::get('/trips', [TripController::class, 'index']);
 Route::get('/trips/{id}', [TripController::class, 'show']);
+
+// PayHere server-to-server IPN (must be public; no auth)
+Route::post('/payments/payhere/notify', [PayHereController::class, 'notify']);
 
 // Authenticated Routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -31,6 +35,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:passenger')->group(function () {
         Route::post('/bookings', [BookingController::class, 'store']);
         Route::get('/my-bookings', [BookingController::class, 'passengerBookings']);
+        Route::get('/bookings/by-order/{orderId}', [BookingController::class, 'statusByOrder']);
+        Route::post('/bookings/sync-payhere', [BookingController::class, 'syncPayHere']);
+        Route::post('/bookings/cancel-pending', [BookingController::class, 'cancelPending']);
     });
 
     // Bus Owner only endpoints

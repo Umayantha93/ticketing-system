@@ -17,6 +17,7 @@ Success bodies are ad-hoc JSON (often `{ message, ... }` or raw Eloquent). Valid
 | GET | `/trips/locations` | Destination list (multilingual) |
 | GET | `/trips` | Search by `origin`, `destination`, `date` |
 | GET | `/trips/{id}` | Trip detail + seats |
+| POST | `/payments/payhere/notify` | PayHere IPN (form-urlencoded; verify `md5sig`) |
 
 ---
 
@@ -36,8 +37,12 @@ Ticket access: owning passenger or bus owner of the trip’s bus (query filtered
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/bookings` | Body: `trip_id`, `seat_ids[]`, `onboarding_location` |
+| POST | `/bookings` | Reserve seats + return PayHere checkout payload |
 | GET | `/my-bookings` | Current user’s bookings |
+| GET | `/bookings/by-order/{orderId}` | Poll status after PayHere return (`orderId` = payment_reference) |
+| POST | `/bookings/cancel-pending` | Body `{ order_id }` — cancel unpaid reservation |
+
+See [PAYHERE.md](./PAYHERE.md) for the checkout contract.
 
 ---
 
@@ -82,7 +87,7 @@ Ticket access: owning passenger or bus owner of the trip’s bus (query filtered
 
 ---
 
-## Booking request example
+## Booking + PayHere example
 
 ```http
 POST /api/bookings
@@ -96,4 +101,4 @@ Content-Type: application/json
 }
 ```
 
-Payment method/card data is **not** required by the API; payment is recorded as paid inside `ProcessBooking`.
+Response `201` includes `payhere` form fields (`merchant_id`, `hash`, `checkout_url`, …). The browser POSTs those fields to PayHere. Payment is confirmed only via `notify_url`.

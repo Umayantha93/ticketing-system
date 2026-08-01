@@ -23,10 +23,13 @@ Per-trip inventory. `seat_number` like `A1`. Status: `available` | `reserved` | 
 ### Booking
 Passenger purchase: trip, seats (M2M `booking_seat`), `ticket_reference`, counts/price, `onboarding_location`.  
 Status: `pending` | `confirmed` | `cancelled`.  
-`payment_status`: `pending` | `paid` | `failed` | `refunded`. Booking job sets payment to paid.
+`payment_status`: `pending` | `paid` | `failed` | `refunded`.  
+Checkout reserves seats (`reserved`) with pending payment; PayHere `notify_url` marks `paid` / `booked` / `confirmed`.  
+`reservation_expires_at` releases unpaid holds via `bookings:expire-reservations`.
 
 ### Payment
-1:1 with booking. Stores gross, base fare, service/other charges, owner payout, admin shares, method, status, `paid_at`, meta.
+1:1 with booking. Stores gross, base fare, service/other charges, owner payout, admin shares, method, status, `paid_at`, meta (PayHere payment id, etc.).  
+`payment_reference` is the PayHere `order_id`.
 
 ### Destination
 Sri Lanka places with `name_en` / `name_si` / `name_ta`, aliases, district code. Search resolves multilingual input.

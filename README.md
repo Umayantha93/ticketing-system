@@ -1,6 +1,6 @@
 # BookKara API (`ticketing-system`)
 
-Laravel API for **BookKara** — a Sri Lanka bus ticket booking platform. This backend powers search, seat booking, simulated payments, tickets, bus-owner operations, and admin approval/ledger flows. The companion UI lives in `ticketing-system-ui`.
+Laravel API for **BookKara** — a Sri Lanka bus ticket booking platform. This backend powers search, seat booking, **PayHere** payments, tickets, bus-owner operations, and admin approval/ledger flows. The companion UI lives in `ticketing-system-ui`.
 
 ## Stack
 
@@ -40,8 +40,11 @@ There is **no** separate Route model. A “route” is a schedule’s origin/des
 1. `GET /api/trips/locations` — destination catalog (EN / SI / TA)
 2. `GET /api/trips?origin=&destination=&date=` — search (materializes trips/seats)
 3. `GET /api/trips/{id}` — seat map
-4. `POST /api/bookings` — passenger books seats (payment simulated as paid)
-5. `GET /api/tickets/{bookingId}` — ticket payload; optional email resend
+4. `POST /api/bookings` — reserve seats + return **PayHere** checkout fields (hash server-side)
+5. Customer pays on PayHere → `POST /api/payments/payhere/notify` confirms payment
+6. `GET /api/tickets/{bookingId}` — ticket payload; optional email resend
+
+See [PayHere integration](docs/PAYHERE.md).
 
 **Pricing:** customer pays base × **1.26** (20% service + 6% other). Owner payout ≈ base × 1.10; admin keeps ≈ base × 0.16.
 

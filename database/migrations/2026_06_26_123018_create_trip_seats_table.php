@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('trip_id')->constrained()->onDelete('cascade');
             $table->string('seat_number');
             $table->enum('status', ['available', 'reserved', 'booked'])->default('available');
+            $table->enum('passenger_gender', ['male', 'female'])->nullable();
             $table->timestamps();
         });
     }
