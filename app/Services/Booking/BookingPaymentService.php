@@ -20,6 +20,7 @@ class BookingPaymentService
     private const SERVICE_CHARGE_RATE = 0.20;
     private const OTHER_CHARGE_RATE = 0.06;
     private const CUSTOMER_CHARGE_MULTIPLIER = 1.26;
+    private const MAX_ONLINE_BOOKABLE_SEATS = 10;
     private const TICKET_REFERENCE_PREFIX = 'TKT-';
     private const TICKET_REFERENCE_LENGTH = 8;
     private const PAYMENT_REFERENCE_PREFIX = 'PAY-';
@@ -36,21 +37,56 @@ class BookingPaymentService
      * @param  list<int|string>  $seatIds
      * @return array{booking: Booking, payment: Payment, payhere: array<string, mixed>}
      */
-    public function initiateCheckout(int $userId, int $tripId, array $seatIds, string $onboardingLocation): array
-    {
+    /**
+     * Reserve seats and return PayHere checkout parameters.
+     *
+     * @param  array<int, string>  $seatSelections  map of seat_id => male|female
+     * @return array{booking: Booking, payment: Payment, payhere: array<string, mixed>}
+     */
+    public function initiateCheckout(
+        int $userId,
+        int $tripId,
+        array $seatSelections,
+        string $onboardingLocation
+    ): array {
         if ($this->payHere->merchantId() === '' || (string) config('payhere.merchant_secret') === '') {
             throw new RuntimeException('PayHere is not configured. Set PAYHERE_MERCHANT_ID and PAYHERE_MERCHANT_SECRET.');
         }
 
-        $seatIds = array_values(array_unique(array_map('intval', $seatIds)));
-        if ($seatIds === []) {
+        if ($seatSelections === []) {
             throw new InvalidArgumentException('At least one seat is required.');
         }
 
-        $result = DB::transaction(function () use ($userId, $tripId, $seatIds, $onboardingLocation) {
+        foreach ($seatSelections as $seatId => $gender) {
+            if (!in_array($gender, ['male', 'female'], true)) {
+                throw new InvalidArgumentException("Invalid gender for seat {$seatId}.");
+            }
+        }
+
+        $seatIds = array_values(array_unique(array_map('intval', array_keys($seatSelections))));
+
+        $result = DB::transaction(function () use ($userId, $tripId, $seatIds, $seatSelections, $onboardingLocation) {
             $trip = Trip::with('schedule.bus')->findOrFail($tripId);
             if (!$trip->schedule) {
                 throw new RuntimeException('Trip schedule is missing.');
+            }
+
+            // Lock all seats on the trip so capacity checks stay consistent
+            TripSeat::where('trip_id', $tripId)->lockForUpdate()->get();
+
+            $takenCount = TripSeat::where('trip_id', $tripId)
+                ->whereIn('status', ['reserved', 'booked'])
+                ->count();
+
+            if ($takenCount >= self::MAX_ONLINE_BOOKABLE_SEATS) {
+                throw new RuntimeException('This trip is fully booked for online reservations.');
+            }
+
+            if ($takenCount + count($seatIds) > self::MAX_ONLINE_BOOKABLE_SEATS) {
+                $remaining = self::MAX_ONLINE_BOOKABLE_SEATS - $takenCount;
+                throw new RuntimeException(
+                    "Only {$remaining} online seat(s) left on this trip (max ".self::MAX_ONLINE_BOOKABLE_SEATS.').'
+                );
             }
 
             $seats = TripSeat::whereIn('id', $seatIds)
@@ -109,11 +145,15 @@ class BookingPaymentService
                 'meta' => [
                     'gateway' => 'payhere',
                     'sandbox' => $this->payHere->isSandbox(),
+                    'seat_genders' => $seatSelections,
                 ],
             ]);
 
             foreach ($seats as $seat) {
-                $seat->update(['status' => 'reserved']);
+                $seat->update([
+                    'status' => 'reserved',
+                    'passenger_gender' => $seatSelections[(int) $seat->id],
+                ]);
                 $booking->seats()->attach($seat->id);
             }
 
@@ -422,7 +462,10 @@ class BookingPaymentService
             if ($locked && in_array($locked->status, ['reserved', 'available'], true)) {
                 // Only free seats still reserved for this pending payment
                 if ($locked->status === 'reserved') {
-                    $locked->update(['status' => 'available']);
+                    $locked->update([
+                        'status' => 'available',
+                        'passenger_gender' => null,
+                    ]);
                 }
             }
         }

@@ -23,16 +23,21 @@ class BookingController extends Controller
     {
         $request->validate([
             'trip_id' => 'required|exists:trips,id',
-            'seat_ids' => 'required|array|min:1',
-            'seat_ids.*' => 'required|integer|exists:trip_seats,id',
+            'seats' => 'required|array|min:1',
+            'seats.*.seat_id' => 'required|integer|exists:trip_seats,id',
+            'seats.*.gender' => 'required|in:male,female',
             'onboarding_location' => 'required|string|max:255',
         ]);
+
+        $seatSelections = collect($request->input('seats'))
+            ->mapWithKeys(fn ($row) => [(int) $row['seat_id'] => (string) $row['gender']])
+            ->all();
 
         try {
             $result = $this->bookingPayments->initiateCheckout(
                 (int) auth()->id(),
                 (int) $request->trip_id,
-                $request->seat_ids,
+                $seatSelections,
                 $request->onboarding_location
             );
         } catch (InvalidArgumentException $e) {
