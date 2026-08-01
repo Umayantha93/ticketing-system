@@ -18,7 +18,8 @@ This is the **Laravel API** for BookKara bus ticket booking. Pair with `ticketin
 ## Booking / seats
 
 - Seat booking must remain transactional (lock seats, reject if not `available`).
-- Payment is **simulated at booking time** — there is no payment-gateway endpoint. Do not assume a separate pay step exists.
+- Payment is **confirmed via PayHere notify_url** after checkout — do not mark seats `booked`/`paid` in `POST /bookings`.
+- `POST /bookings` only **reserves** seats and returns PayHere form fields (hash server-side).
 - Ticket URL id is the **booking id**, not `ticket_reference`.
 - Trip search/show may `firstOrCreate` trips and sync seats — GET has side effects by design.
 
@@ -34,4 +35,5 @@ This is the **Laravel API** for BookKara bus ticket booking. Pair with `ticketin
 | `docs/ARCHITECTURE.md` | Layers, auth, jobs |
 | `docs/API.md` | Endpoint catalog |
 | `docs/DOMAIN.md` | Models, pricing, statuses |
+| `docs/PAYHERE.md` | PayHere Checkout / notify flow |
 | `.cursor/rules/` | Cursor rules for this package |

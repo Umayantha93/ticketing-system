@@ -17,6 +17,10 @@ use Illuminate\Support\Str;
 use App\Models\TripSeat;
 use App\Mail\BookingNotificationMail;
 
+/**
+ * @deprecated Prefer App\Services\Booking\BookingPaymentService (PayHere checkout).
+ * Kept for reference / legacy sync booking experiments. Live booking uses reserve → PayHere → notify.
+ */
 class ProcessBooking implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
