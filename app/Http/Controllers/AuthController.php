@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 
 class AuthController extends Controller
@@ -23,14 +22,15 @@ class AuthController extends Controller
             'name'         => $validated['name'],
             'phone_number' => $validated['phone_number'],
             'email'        => $validated['email'],
-            'password'     => Hash::make($validated['password']),
+            'password'     => $validated['password'],
+            'role'         => 'passenger',
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'message' => 'User registered successfully',
-            'user'    => $user,
+            'user'    => $user->fresh(),
             'token'   => $token,
         ], 201);
     }
